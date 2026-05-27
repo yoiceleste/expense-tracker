@@ -62,7 +62,7 @@ export async function fetchRates(): Promise<RateCache> {
     // 最终兜底：返回空汇率
     console.error('Failed to fetch exchange rates:', err)
     return {
-      rates: { CNY: 1, USD: 0.14, EUR: 0.13, JPY: 21.5, THB: 5.0, KRW: 195, GBP: 0.11, HKD: 1.08, TWD: 4.5, SGD: 0.19, MYR: 0.65, JPY: 21.5, AUD: 0.21, NZD: 0.25 },
+      rates: { CNY: 1, USD: 0.14, EUR: 0.13, JPY: 21.5, THB: 5.0, KRW: 195, GBP: 0.11, HKD: 1.08, TWD: 4.5, SGD: 0.19, MYR: 0.65, AUD: 0.21, NZD: 0.25 },
       base: 'CNY',
       timestamp: 0,
       updateTime: 'unknown',

@@ -13,11 +13,15 @@
     "moduleDetection": "force",
     "noEmit": true,
 
+    /* Vue */
+    "jsx": "preserve",
+    "jsxImportSource": "vue",
+
     /* Linting */
     "noUnusedLocals": true,
     "noUnusedParameters": true,
     "erasableSyntaxOnly": true,
     "noFallthroughCasesInSwitch": true
   },
-  "include": ["src"]
+  "include": ["src/**/*.ts", "src/**/*.tsx", "src/**/*.vue", "env.d.ts"]
 }

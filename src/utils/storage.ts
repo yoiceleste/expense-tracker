@@ -40,7 +40,7 @@ export async function getRecords(): Promise<Record[]> {
   return (data || []).map(rowToRecord)
 }
 
-export async function saveRecords(records: Record[]): Promise<void> {
+export async function saveRecords(_records: Record[]): Promise<void> {
   // Supabase 模式下不需要全量保存，由各操作函数单独处理
   // 保留此函数签名以兼容 store 代码
   console.warn('saveRecords: Supabase 模式下不需要全量保存')
@@ -105,7 +105,7 @@ export async function getCategories(): Promise<Category[]> {
   return (data || []).map(rowToCategory)
 }
 
-export async function saveCategories(categories: Category[]): Promise<void> {
+export async function saveCategories(_categories: Category[]): Promise<void> {
   console.warn('saveCategories: Supabase 模式下不需要全量保存')
 }
 
@@ -172,7 +172,7 @@ export async function getBudgets(): Promise<Budget[]> {
   return (data || []).map(rowToBudget)
 }
 
-export async function saveBudgets(budgets: Budget[]): Promise<void> {
+export async function saveBudgets(_budgets: Budget[]): Promise<void> {
   console.warn('saveBudgets: Supabase 模式下不需要全量保存')
 }
 
