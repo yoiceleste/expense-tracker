@@ -33,7 +33,12 @@
     </div>
 
     <!-- 转账方案 -->
-    <div class="section-title">转账方案</div>
+    <div class="section-title-row">
+      <span class="section-title">转账方案</span>
+      <button v-if="transfers.length > 0" class="copy-btn" @click="copySettlement">
+        📋 复制
+      </button>
+    </div>
 
     <div v-if="transfers.length === 0" class="settle-done">
       <div class="done-icon">🎉</div>
@@ -84,6 +89,27 @@ function getName(id: string) {
 
 function getColor(id: string) {
   return trip.value ? store.getMemberColor(trip.value, id) : '#ccc'
+}
+
+function copySettlement() {
+  if (!trip.value || transfers.value.length === 0) return
+  const lines = transfers.value.map((t, i) => {
+    const from = getName(t.fromId)
+    const to = getName(t.toId)
+    return `${i + 1}. ${from} → ${to}：¥${formatMoney(t.amount)}`
+  })
+  const text = `【${trip.value.name} 结算方案】\n总消费：¥${formatMoney(total.value)}\n\n${lines.join('\n')}`
+  navigator.clipboard.writeText(text).then(() => {
+    alert('已复制到剪贴板！可以直接发给群聊')
+  }).catch(() => {
+    const input = document.createElement('textarea')
+    input.value = text
+    document.body.appendChild(input)
+    input.select()
+    document.execCommand('copy')
+    document.body.removeChild(input)
+    alert('已复制到剪贴板！可以直接发给群聊')
+  })
 }
 </script>
 
@@ -143,8 +169,25 @@ function getColor(id: string) {
 .section-title {
   font-size: 15px;
   font-weight: 600;
-  margin-bottom: 10px;
   color: var(--text-secondary);
+}
+
+.section-title-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 10px;
+}
+
+.copy-btn {
+  padding: 6px 14px;
+  border: none;
+  background: var(--primary);
+  color: white;
+  border-radius: 20px;
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
 }
 
 .balance-list {
