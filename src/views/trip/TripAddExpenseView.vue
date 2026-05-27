@@ -6,6 +6,12 @@
       <span style="width:34px"></span>
     </div>
 
+    <!-- 草稿恢复提示 -->
+    <div v-if="showDraftTip" class="draft-tip">
+      <span>📝 已恢复上次未完成的账单</span>
+      <button class="draft-discard" @click="discardDraft">丢弃</button>
+    </div>
+
     <!-- 金额 -->
     <div class="amount-card">
       <div v-if="isForeignCurrency" class="foreign-amount-row">
@@ -237,6 +243,95 @@ const payMethod = ref('wechat')
 const images = ref<string[]>([])
 const note = ref('')
 const date = ref(new Date().toISOString().split('T')[0])
+const showDraftTip = ref(false)
+
+// ===== 草稿自动保存 =====
+const DRAFT_KEY = `trip_expense_draft_${tripId}`
+
+function saveDraft() {
+  // 只在有内容时才保存草稿
+  if (!amountStr.value && !note.value && !foreignAmountStr.value) return
+  const draft = {
+    amountStr: amountStr.value,
+    foreignAmountStr: foreignAmountStr.value,
+    payerId: payerId.value,
+    splitAmong: splitAmong.value,
+    splitMode: splitMode.value,
+    customAmounts: { ...customAmounts },
+    categoryId: categoryId.value,
+    payMethod: payMethod.value,
+    note: note.value,
+    date: date.value,
+    // 图片太大不存草稿
+  }
+  try {
+    sessionStorage.setItem(DRAFT_KEY, JSON.stringify(draft))
+  } catch { /* ignore */ }
+}
+
+function loadDraft(): boolean {
+  try {
+    const raw = sessionStorage.getItem(DRAFT_KEY)
+    if (!raw) return false
+    const draft = JSON.parse(raw)
+    if (!draft.amountStr && !draft.note && !draft.foreignAmountStr) return false
+    amountStr.value = draft.amountStr || ''
+    foreignAmountStr.value = draft.foreignAmountStr || ''
+    payerId.value = draft.payerId || ''
+    splitAmong.value = draft.splitAmong || []
+    splitMode.value = draft.splitMode || 'equal'
+    categoryId.value = draft.categoryId || store.categories[0]?.id || ''
+    payMethod.value = draft.payMethod || 'wechat'
+    note.value = draft.note || ''
+    date.value = draft.date || new Date().toISOString().split('T')[0]
+    if (draft.customAmounts) {
+      Object.assign(customAmounts, draft.customAmounts)
+    }
+    return true
+  } catch {
+    return false
+  }
+}
+
+function clearDraft() {
+  try { sessionStorage.removeItem(DRAFT_KEY) } catch { /* ignore */ }
+}
+
+function restoreDraft() {
+  if (loadDraft()) {
+    showDraftTip.value = true
+    setTimeout(() => { showDraftTip.value = false }, 3000)
+  }
+}
+
+function discardDraft() {
+  clearDraft()
+  showDraftTip.value = false
+  // 重置表单
+  amountStr.value = ''
+  foreignAmountStr.value = ''
+  if (trip.value) {
+    payerId.value = trip.value.members[0]?.id || ''
+    splitAmong.value = trip.value.members.map(m => m.id)
+  }
+  splitMode.value = 'equal'
+  Object.keys(customAmounts).forEach(k => delete customAmounts[k])
+  categoryId.value = store.categories[0]?.id || ''
+  payMethod.value = 'wechat'
+  note.value = ''
+  date.value = new Date().toISOString().split('T')[0]
+}
+
+// 监听表单变化，自动保存草稿（防抖）
+let draftTimer: ReturnType<typeof setTimeout> | null = null
+function scheduleDraftSave() {
+  if (draftTimer) clearTimeout(draftTimer)
+  draftTimer = setTimeout(saveDraft, 500)
+}
+
+watch([amountStr, foreignAmountStr, payerId, splitAmong, splitMode, categoryId, payMethod, note, date], () => {
+  scheduleDraftSave()
+}, { deep: true })
 
 const amountNum = computed(() => parseFloat(amountStr.value) || 0)
 
@@ -289,6 +384,9 @@ onMounted(async () => {
   if (isEditing.value && trip.value) {
     const expense = trip.value.expenses.find(e => e.id === editingExpenseId)
     if (expense) loadExpense(expense)
+  } else {
+    // 新增模式：恢复草稿
+    restoreDraft()
   }
 })
 
@@ -469,6 +567,7 @@ async function save() {
   }
 
   router.back()
+  clearDraft()
 }
 </script>
 
@@ -501,6 +600,29 @@ async function save() {
 .header-title {
   font-size: 17px;
   font-weight: 600;
+}
+
+/* 草稿提示 */
+.draft-tip {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 14px;
+  background: #fff8e1;
+  border-radius: 10px;
+  margin-bottom: 12px;
+  font-size: 13px;
+  color: #8d6e00;
+}
+
+.draft-discard {
+  border: none;
+  background: none;
+  color: #b8860b;
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  padding: 4px 8px;
 }
 
 /* 金额 */
