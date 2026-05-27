@@ -44,10 +44,14 @@
 <script setup lang="ts">
 import { ref } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
-import { signIn, signUp } from '../lib/auth'
+import { signIn, signUp, currentUser, currentSession } from '../lib/auth'
+import { useExpenseStore } from '../stores/expense'
+import { useTripStore } from '../stores/trip'
 
 const router = useRouter()
 const route = useRoute()
+const expenseStore = useExpenseStore()
+const tripStore = useTripStore()
 const email = ref('')
 const password = ref('')
 const isLogin = ref(true)
@@ -66,6 +70,11 @@ async function handleSubmit() {
     } else {
       await signUp(email.value.trim(), password.value)
     }
+    // 登录成功后初始化数据
+    await Promise.all([
+      expenseStore.init(),
+      tripStore.init(),
+    ])
     const redirect = (route.query.redirect as string) || '/home'
     router.replace(redirect)
   } catch (err: any) {

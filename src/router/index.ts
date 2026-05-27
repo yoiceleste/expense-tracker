@@ -1,5 +1,5 @@
 import { createRouter, createWebHashHistory } from 'vue-router'
-import { getSession } from '../lib/auth'
+import { getSession, currentUser } from '../lib/auth'
 
 const router = createRouter({
   history: createWebHashHistory(),
@@ -77,6 +77,9 @@ const router = createRouter({
 router.beforeEach(async (to) => {
   // 公开页面不需要认证
   if (to.meta.public) return true
+
+  // 先检查 currentUser（可能已被登录页设置）
+  if (currentUser) return true
 
   try {
     const session = await getSession()
