@@ -43,6 +43,30 @@
       </div>
     </div>
 
+    <!-- 设置昵称弹窗（创建旅行后弹出） -->
+    <div v-if="showNickname" class="modal-overlay" @click.self="showNickname = false">
+      <div class="modal">
+        <div class="modal-title">✈️ {{ pendingTripName }}</div>
+        <div class="nickname-hint">设置你在旅行中的昵称</div>
+        <div class="form-row">
+          <input
+            ref="nicknameInput"
+            v-model="creatorNickname"
+            class="input nickname-input"
+            placeholder="输入你的昵称"
+            maxlength="10"
+            @keyup.enter="confirmNickname"
+          />
+        </div>
+        <div class="modal-actions">
+          <button class="btn btn-ghost" @click="showNickname = false">取消</button>
+          <button class="btn btn-primary" :disabled="!creatorNickname.trim()" @click="confirmNickname">
+            进入旅行
+          </button>
+        </div>
+      </div>
+    </div>
+
     <!-- 新建旅行弹窗 -->
     <button class="fab" style="display:none" @click="showCreate = true">+</button>
 
@@ -80,7 +104,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, watch, onMounted } from 'vue'
+import { ref, watch, onMounted, nextTick } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { useTripStore } from '../../stores/trip'
 import { formatMoney } from '../../utils/trip-storage'
@@ -92,6 +116,11 @@ const route = useRoute()
 const store = useTripStore()
 
 const showCreate = ref(false)
+const showNickname = ref(false)
+const pendingTripId = ref('')
+const pendingTripName = ref('')
+const creatorNickname = ref('')
+const nicknameInput = ref<HTMLInputElement | null>(null)
 const tripName = ref('')
 const selectedCurrency = ref('CNY')
 const startDate = ref('')
@@ -135,19 +164,35 @@ async function createTrip() {
   startDate.value = ''
   endDate.value = ''
 
-  // 创建者自动加入（使用默认昵称"我"）
-  await store.joinTrip(trip.id, '我')
+  // 弹出昵称设置弹窗
+  pendingTripId.value = trip.id
+  pendingTripName.value = trip.name
+  creatorNickname.value = ''
+  showNickname.value = true
+
+  await nextTick()
+  nicknameInput.value?.focus()
+}
+
+async function confirmNickname() {
+  const name = creatorNickname.value.trim()
+  if (!name) return
+
+  // 加入旅行
+  await store.joinTrip(pendingTripId.value, name)
+  await store.loadTripById(pendingTripId.value)
+  showNickname.value = false
 
   // 复制分享链接
-  const link = store.getShareLink(trip)
+  const link = store.getShareLink(store.getTripById(pendingTripId.value)!)
   try {
     await navigator.clipboard.writeText(link)
-    alert(`旅行创建成功！邀请链接已复制，发给朋友即可加入`)
+    alert('邀请链接已复制！发给朋友即可加入旅行')
   } catch {
-    alert(`旅行创建成功！\n\n邀请链接：\n${link}`)
+    alert(`邀请链接：\n${link}`)
   }
 
-  router.push(`/trip/${trip.id}`)
+  router.push(`/trip/${pendingTripId.value}`)
 }
 </script>
 
@@ -353,5 +398,20 @@ async function createTrip() {
 .modal-actions .btn {
   flex: 1;
   padding: 12px;
+}
+
+/* 昵称弹窗 */
+.nickname-hint {
+  text-align: center;
+  font-size: 14px;
+  color: var(--text-secondary);
+  margin-bottom: 20px;
+}
+
+.nickname-input {
+  text-align: center;
+  font-size: 18px;
+  padding: 14px;
+  font-weight: 600;
 }
 </style>
