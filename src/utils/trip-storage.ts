@@ -66,8 +66,8 @@ export async function getTrip(id: string): Promise<Trip | undefined> {
 
 export async function saveTrip(trip: Trip): Promise<void> {
   const uid = getUserId()
-  if (!uid) return
-  await supabase.from('trips').upsert({
+  if (!uid) { console.error('saveTrip: no user id'); return }
+  const { error } = await supabase.from('trips').upsert({
     id: trip.id,
     user_id: uid,
     name: trip.name,
@@ -76,7 +76,8 @@ export async function saveTrip(trip: Trip): Promise<void> {
     end_date: trip.endDate,
     created_at: trip.createdAt,
     updated_at: trip.updatedAt,
-  }, { onConflict: 'id,user_id' })
+  })
+  if (error) console.error('saveTrip error:', error)
 }
 
 export async function deleteTrip(id: string): Promise<void> {
