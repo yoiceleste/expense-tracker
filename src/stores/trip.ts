@@ -8,9 +8,20 @@ export const useTripStore = defineStore('trip', () => {
   const trips = ref<Trip[]>([])
   const categories = ref(defaultTripCategories)
 
-  // 初始化（异步）
+  // 当前用户的 member_id（按 trip 缓存）
+  const currentMemberIds = ref<Record<string, string>>({})
+
+  // 初始化
   async function init() {
     trips.value = await storage.getTrips()
+  }
+
+  // 获取当前用户在某个旅行中的 member_id
+  function getMyMemberId(tripId: string): string | null {
+    if (currentMemberIds.value[tripId]) return currentMemberIds.value[tripId]
+    const localId = storage.getLocalMemberId(tripId)
+    if (localId) currentMemberIds.value[tripId] = localId
+    return localId
   }
 
   // ===== 旅行 CRUD =====
@@ -21,6 +32,7 @@ export const useTripStore = defineStore('trip', () => {
       currency,
       startDate,
       endDate,
+      shareCode: storage.generateShareCode(),
       members: [],
       expenses: [],
       createdAt: Date.now(),
@@ -49,10 +61,24 @@ export const useTripStore = defineStore('trip', () => {
     return member
   }
 
+  // 加入旅行（输入昵称 → 创建成员 → 保存到 localStorage）
+  async function joinTrip(tripId: string, nickname: string): Promise<TripMember | null> {
+    const member = await addMember(tripId, nickname)
+    if (member) {
+      storage.setLocalMemberId(tripId, member.id)
+      currentMemberIds.value[tripId] = member.id
+    }
+    return member
+  }
+
+  // 检查是否已加入某个旅行
+  function hasJoined(tripId: string): boolean {
+    return !!getMyMemberId(tripId)
+  }
+
   async function removeMember(tripId: string, memberId: string) {
     const trip = trips.value.find(t => t.id === tripId)
     if (!trip) return
-    // 检查该成员是否有消费记录
     const hasExpenses = trip.expenses.some(e => e.payerId === memberId || e.splitAmong.includes(memberId))
     if (hasExpenses) return false
     trip.members = trip.members.filter(m => m.id !== memberId)
@@ -88,6 +114,43 @@ export const useTripStore = defineStore('trip', () => {
 
   function getTripById(id: string): Trip | undefined {
     return trips.value.find(t => t.id === id)
+  }
+
+  // 加载单个旅行数据（用于直接通过链接进入）
+  async function loadTripById(tripId: string): Promise<Trip | null> {
+    const trip = await storage.getTripById(tripId)
+    if (trip) {
+      const index = trips.value.findIndex(t => t.id === tripId)
+      if (index !== -1) {
+        trips.value[index] = trip
+      } else {
+        trips.value.unshift(trip)
+      }
+    }
+    return trip
+  }
+
+  // 通过分享码加入
+  async function joinByShareCode(shareCode: string, nickname: string): Promise<Trip | null> {
+    const trip = await storage.getTripByShareCode(shareCode)
+    if (!trip) return null
+    // 检查是否已加入
+    const existingMemberId = storage.getLocalMemberId(trip.id)
+    if (existingMemberId) {
+      // 已加入，直接加载
+      await loadTripById(trip.id)
+      return trip
+    }
+    // 加入旅行
+    await joinTrip(trip.id, nickname)
+    await loadTripById(trip.id)
+    return trip
+  }
+
+  // 获取分享链接
+  function getShareLink(trip: Trip): string {
+    const base = window.location.origin + window.location.pathname
+    return `${base}#/join/${trip.shareCode}`
   }
 
   // ===== 消费记录 =====
@@ -129,7 +192,7 @@ export const useTripStore = defineStore('trip', () => {
     await storage.saveTrip(trip)
   }
 
-  // ===== 核心算法：计算净余额 =====
+  // ===== 核心算法 =====
   function getMemberBalances(trip: Trip): MemberBalance[] {
     const balances: MemberBalance[] = trip.members.map(m => ({
       memberId: m.id,
@@ -161,52 +224,34 @@ export const useTripStore = defineStore('trip', () => {
       }
     })
 
-    balances.forEach(b => {
-      b.balance = b.paid - b.share
-    })
-
+    balances.forEach(b => { b.balance = b.paid - b.share })
     return balances
   }
 
-  // ===== 核心算法：最少转账次数（贪心） =====
   function getTransfers(trip: Trip): Transfer[] {
     const balances = getMemberBalances(trip)
     const transfers: Transfer[] = []
 
-    const creditors = balances
-      .filter(b => b.balance > 0.01)
-      .map(b => ({ ...b }))
-      .sort((a, b) => b.balance - a.balance)
-
-    const debtors = balances
-      .filter(b => b.balance < -0.01)
-      .map(b => ({ ...b, balance: Math.abs(b.balance) }))
-      .sort((a, b) => b.balance - a.balance)
+    const creditors = balances.filter(b => b.balance > 0.01).map(b => ({ ...b })).sort((a, b) => b.balance - a.balance)
+    const debtors = balances.filter(b => b.balance < -0.01).map(b => ({ ...b, balance: Math.abs(b.balance) })).sort((a, b) => b.balance - a.balance)
 
     let i = 0, j = 0
     while (i < creditors.length && j < debtors.length) {
       const amount = Math.min(creditors[i].balance, debtors[j].balance)
       if (amount > 0.01) {
-        transfers.push({
-          fromId: debtors[j].memberId,
-          toId: creditors[i].memberId,
-          amount: Math.round(amount * 100) / 100,
-        })
+        transfers.push({ fromId: debtors[j].memberId, toId: creditors[i].memberId, amount: Math.round(amount * 100) / 100 })
       }
       creditors[i].balance -= amount
       debtors[j].balance -= amount
       if (creditors[i].balance < 0.01) i++
       if (debtors[j].balance < 0.01) j++
     }
-
     return transfers
   }
 
-  // ===== 消费结构分析 =====
   function getMemberSpending(trip: Trip): MemberSpending[] {
     return trip.members.map(member => {
       const catMap = new Map<string, number>()
-
       trip.expenses.forEach(expense => {
         if (!expense.splitAmong.includes(member.id)) return
         let perPerson: number
@@ -223,25 +268,13 @@ export const useTripStore = defineStore('trip', () => {
       const cats = Array.from(catMap.entries()).map(([catId, amount]) => {
         total += amount
         const cat = categories.value.find(c => c.id === catId)
-        return {
-          categoryId: catId,
-          categoryName: cat?.name || '未知',
-          categoryIcon: cat?.icon || '📦',
-          amount: Math.round(amount * 100) / 100,
-        }
+        return { categoryId: catId, categoryName: cat?.name || '未知', categoryIcon: cat?.icon || '📦', amount: Math.round(amount * 100) / 100 }
       }).sort((a, b) => b.amount - a.amount)
 
-      return {
-        memberId: member.id,
-        name: member.name,
-        color: member.color,
-        categories: cats,
-        total: Math.round(total * 100) / 100,
-      }
+      return { memberId: member.id, name: member.name, color: member.color, categories: cats, total: Math.round(total * 100) / 100 }
     })
   }
 
-  // ===== 工具 =====
   function getMemberName(trip: Trip, memberId: string) {
     return trip.members.find(m => m.id === memberId)?.name || '未知'
   }
@@ -255,24 +288,12 @@ export const useTripStore = defineStore('trip', () => {
   }
 
   return {
-    trips,
-    categories,
+    trips, categories, currentMemberIds,
     init,
-    createTrip,
-    addMember,
-    removeMember,
-    renameMember,
-    updateTrip,
-    removeTrip,
-    getTripById,
-    addExpense,
-    updateExpense,
-    removeExpense,
-    getMemberBalances,
-    getTransfers,
-    getMemberSpending,
-    getMemberName,
-    getMemberColor,
-    getTripTotal,
+    getMyMemberId, hasJoined, joinTrip, joinByShareCode, getShareLink, loadTripById,
+    createTrip, addMember, removeMember, renameMember, updateTrip, removeTrip, getTripById,
+    addExpense, updateExpense, removeExpense,
+    getMemberBalances, getTransfers, getMemberSpending,
+    getMemberName, getMemberColor, getTripTotal,
   }
 })

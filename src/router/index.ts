@@ -44,36 +44,47 @@ const router = createRouter({
       name: 'Settings',
       component: () => import('../views/SettingsView.vue'),
     },
-    // ===== 旅行分账 =====
+    // ===== 旅行分账（公开，无需登录） =====
     {
       path: '/trips',
       name: 'Trips',
       component: () => import('../views/trip/TripsView.vue'),
+      meta: { public: true },
+    },
+    {
+      path: '/join/:code',
+      name: 'JoinTrip',
+      component: () => import('../views/trip/JoinTripView.vue'),
+      meta: { public: true },
     },
     {
       path: '/trip/:id',
       name: 'TripDetail',
       component: () => import('../views/trip/TripDetailView.vue'),
+      meta: { public: true },
     },
     {
       path: '/trip/:id/add',
       name: 'TripAddExpense',
       component: () => import('../views/trip/TripAddExpenseView.vue'),
+      meta: { public: true },
     },
     {
       path: '/trip/:id/settle',
       name: 'TripSettle',
       component: () => import('../views/trip/TripSettleView.vue'),
+      meta: { public: true },
     },
     {
       path: '/trip/:id/spending',
       name: 'TripSpending',
       component: () => import('../views/trip/TripSpendingView.vue'),
+      meta: { public: true },
     },
   ],
 })
 
-// 路由守卫：未登录跳转登录页
+// 路由守卫：未登录跳转登录页（旅行相关页面除外）
 router.beforeEach(async (to) => {
   // 公开页面不需要认证
   if (to.meta.public) return true

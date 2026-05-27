@@ -134,6 +134,19 @@ async function createTrip() {
   selectedCurrency.value = 'CNY'
   startDate.value = ''
   endDate.value = ''
+
+  // 创建者自动加入（使用默认昵称"我"）
+  await store.joinTrip(trip.id, '我')
+
+  // 复制分享链接
+  const link = store.getShareLink(trip)
+  try {
+    await navigator.clipboard.writeText(link)
+    alert(`旅行创建成功！邀请链接已复制，发给朋友即可加入`)
+  } catch {
+    alert(`旅行创建成功！\n\n邀请链接：\n${link}`)
+  }
+
   router.push(`/trip/${trip.id}`)
 }
 </script>

@@ -31,6 +31,7 @@ export interface Trip {
   currency: string          // 当地货币代码，如 USD, JPY, THB
   startDate: string         // 开始日期 YYYY-MM-DD
   endDate: string           // 结束日期 YYYY-MM-DD
+  shareCode: string         // 分享码，用于邀请链接
   members: TripMember[]
   expenses: TripExpense[]
   createdAt: number

@@ -12,6 +12,7 @@
         </div>
       </div>
       <div class="header-actions">
+        <button class="icon-btn" @click="copyShareLink" title="分享邀请链接">🔗</button>
         <button class="icon-btn" @click="$router.push(`/trip/${tripId}/settle`)">💰</button>
         <button class="icon-btn" @click="$router.push(`/trip/${tripId}/spending`)">📊</button>
       </div>
@@ -167,15 +168,46 @@
 
 <script setup lang="ts">
 import { computed, ref, onMounted } from 'vue'
-import { useRoute } from 'vue-router'
+import { useRoute, useRouter } from 'vue-router'
 import { useTripStore } from '../../stores/trip'
 import { formatMoney } from '../../utils/trip-storage'
 import { fetchRates, getRateText } from '../../utils/exchange-rate'
 import { getCurrencyInfo } from '../../types/currencies'
 
 const route = useRoute()
+const router = useRouter()
 const store = useTripStore()
 const tripId = route.params.id as string
+
+// 分享链接
+function copyShareLink() {
+  if (!trip.value) return
+  const link = store.getShareLink(trip.value)
+  navigator.clipboard.writeText(link).then(() => {
+    alert('邀请链接已复制！发给朋友即可加入旅行')
+  }).catch(() => {
+    // fallback
+    const input = document.createElement('input')
+    input.value = link
+    document.body.appendChild(input)
+    input.select()
+    document.execCommand('copy')
+    document.body.removeChild(input)
+    alert('邀请链接已复制！发给朋友即可加入旅行')
+  })
+}
+
+// 加入检查：如果直接通过链接进入且未加入过，跳转到加入页
+onMounted(async () => {
+  if (!store.hasJoined(tripId)) {
+    // 尝试从 store 加载旅行数据
+    await store.loadTripById(tripId)
+    if (!store.hasJoined(tripId) && trip.value?.shareCode) {
+      router.replace(`/join/${trip.value.shareCode}`)
+      return
+    }
+  }
+})
 
 const trip = computed(() => store.getTripById(tripId))
 const total = computed(() => trip.value ? store.getTripTotal(trip.value) : 0)
