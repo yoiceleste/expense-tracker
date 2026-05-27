@@ -92,13 +92,14 @@ export async function deleteTrip(id: string): Promise<void> {
 export async function saveMember(tripId: string, member: TripMember): Promise<void> {
   const uid = getUserId()
   if (!uid) return
-  await supabase.from('trip_members').upsert({
+  const { error } = await supabase.from('trip_members').upsert({
     id: member.id,
     trip_id: tripId,
     user_id: uid,
     name: member.name,
     color: member.color,
-  }, { onConflict: 'trip_id,id' })
+  })
+  if (error) console.error('saveMember error:', error)
 }
 
 export async function deleteMember(tripId: string, memberId: string): Promise<void> {
@@ -116,7 +117,7 @@ export async function deleteMember(tripId: string, memberId: string): Promise<vo
 export async function saveExpense(tripId: string, expense: TripExpense): Promise<void> {
   const uid = getUserId()
   if (!uid) return
-  await supabase.from('trip_expenses').upsert({
+  const { error } = await supabase.from('trip_expenses').upsert({
     id: expense.id,
     trip_id: tripId,
     user_id: uid,
@@ -131,7 +132,8 @@ export async function saveExpense(tripId: string, expense: TripExpense): Promise
     note: expense.note,
     date: expense.date,
     created_at: expense.createdAt,
-  }, { onConflict: 'id,trip_id' })
+  })
+  if (error) console.error('saveExpense error:', error)
 }
 
 export async function deleteExpense(tripId: string, expenseId: string): Promise<void> {

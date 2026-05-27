@@ -155,7 +155,7 @@ export async function saveAccounts(accounts: Account[]): Promise<void> {
       icon: acc.icon,
       balance: acc.balance,
       is_default: acc.isDefault,
-    }, { onConflict: 'id,user_id' })
+    }, { onConflict: 'id' })
   }
 }
 
@@ -185,7 +185,7 @@ export async function addBudget(budget: Budget): Promise<void> {
     category_id: budget.categoryId,
     amount: budget.amount,
     month: budget.month,
-  }, { onConflict: 'id,user_id' })
+  }, { onConflict: 'id' })
   if (error) console.error('addBudget error:', error)
 }
 
@@ -223,7 +223,7 @@ export async function importData(data: { records?: Record[]; categories?: Catego
       data.categories.map(c => ({
         id: c.id, user_id: uid, name: c.name, icon: c.icon, type: c.type, is_default: c.isDefault,
       })),
-      { onConflict: 'id,user_id' }
+      { onConflict: 'id' }
     )
   }
   if (data.accounts?.length) {
@@ -231,7 +231,7 @@ export async function importData(data: { records?: Record[]; categories?: Catego
       data.accounts.map(a => ({
         id: a.id, user_id: uid, name: a.name, icon: a.icon, balance: a.balance, is_default: a.isDefault,
       })),
-      { onConflict: 'id,user_id' }
+      { onConflict: 'id' }
     )
   }
   if (data.records?.length) {
@@ -242,7 +242,7 @@ export async function importData(data: { records?: Record[]; categories?: Catego
         category_id: r.categoryId, note: r.note, date: r.date,
         created_at: r.createdAt, tags: r.tags, account_id: r.accountId,
       })),
-      { onConflict: 'id,user_id' }
+      { onConflict: 'id' }
     )
   }
   if (data.budgets?.length) {
@@ -250,7 +250,7 @@ export async function importData(data: { records?: Record[]; categories?: Catego
       data.budgets.map(b => ({
         id: b.id, user_id: uid, category_id: b.categoryId, amount: b.amount, month: b.month,
       })),
-      { onConflict: 'id,user_id' }
+      { onConflict: 'id' }
     )
   }
 }
