@@ -24,6 +24,7 @@
 
       <div class="form-group">
         <input
+          ref="nicknameInput"
           v-model="nickname"
           class="input"
           placeholder="输入你的昵称"
@@ -40,7 +41,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted } from 'vue'
+import { ref, onMounted, nextTick } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useTripStore } from '../../stores/trip'
 
@@ -53,20 +54,13 @@ const trip = ref<any>(null)
 const loading = ref(true)
 const error = ref('')
 const nickname = ref('')
+const nicknameInput = ref<HTMLInputElement | null>(null)
 const joining = ref(false)
 const needsJoin = ref(false)
 
 onMounted(async () => {
-  // 先检查是否已加入过
-  const existingTrip = await store.joinByShareCode(shareCode, '')
-  if (existingTrip && store.hasJoined(existingTrip.id)) {
-    // 已加入过，直接跳转
-    router.replace(`/trip/${existingTrip.id}`)
-    return
-  }
-
-  // 加载旅行信息供展示
-  const tripData = await store.joinByShareCode(shareCode, '')
+  // 1. 通过分享码查找旅行
+  const tripData = await store.findByShareCode(shareCode)
   if (!tripData) {
     error.value = '旅行不存在或链接已失效'
     loading.value = false
@@ -74,8 +68,22 @@ onMounted(async () => {
   }
 
   trip.value = tripData
+
+  // 2. 检查是否已加入过
+  if (store.hasJoined(tripData.id)) {
+    // 已加入，直接跳转
+    await store.loadTripById(tripData.id)
+    router.replace(`/trip/${tripData.id}`)
+    return
+  }
+
+  // 3. 需要加入，显示昵称输入
   needsJoin.value = true
   loading.value = false
+
+  // 自动聚焦输入框
+  await nextTick()
+  nicknameInput.value?.focus()
 })
 
 async function handleJoin() {
@@ -83,12 +91,9 @@ async function handleJoin() {
   if (!name) return
   joining.value = true
   try {
-    const result = await store.joinByShareCode(shareCode, name)
-    if (result) {
-      router.replace(`/trip/${result.id}`)
-    } else {
-      error.value = '加入失败，请重试'
-    }
+    await store.joinTrip(trip.value.id, name)
+    await store.loadTripById(trip.value.id)
+    router.replace(`/trip/${trip.value.id}`)
   } catch {
     error.value = '加入失败，请重试'
   } finally {

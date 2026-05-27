@@ -3,6 +3,8 @@ import { ref } from 'vue'
 import type { Trip, TripExpense, TripMember, Transfer, MemberBalance, MemberSpending } from '../types/trip'
 import { defaultTripCategories } from '../types/trip-defaults'
 import * as storage from '../utils/trip-storage'
+import { supabase } from '../lib/supabase'
+import type { RealtimeChannel } from '@supabase/supabase-js'
 
 export const useTripStore = defineStore('trip', () => {
   const trips = ref<Trip[]>([])
@@ -10,6 +12,9 @@ export const useTripStore = defineStore('trip', () => {
 
   // 当前用户的 member_id（按 trip 缓存）
   const currentMemberIds = ref<Record<string, string>>({})
+
+  // Realtime 订阅管理
+  const channels = ref<Record<string, RealtimeChannel>>({})
 
   // 初始化
   async function init() {
@@ -22,6 +27,38 @@ export const useTripStore = defineStore('trip', () => {
     const localId = storage.getLocalMemberId(tripId)
     if (localId) currentMemberIds.value[tripId] = localId
     return localId
+  }
+
+  // ===== Realtime 实时订阅 =====
+  function subscribeTrip(tripId: string) {
+    if (channels.value[tripId]) return // 已订阅
+
+    const channel = supabase
+      .channel(`trip-${tripId}`)
+      .on('postgres_changes',
+        { event: '*', schema: 'public', table: 'trip_expenses', filter: `trip_id=eq.${tripId}` },
+        async () => {
+          // 有新的消费记录变化，重新加载该旅行
+          await loadTripById(tripId)
+        }
+      )
+      .on('postgres_changes',
+        { event: '*', schema: 'public', table: 'trip_members', filter: `trip_id=eq.${tripId}` },
+        async () => {
+          // 有新成员变化，重新加载
+          await loadTripById(tripId)
+        }
+      )
+      .subscribe()
+
+    channels.value[tripId] = channel
+  }
+
+  function unsubscribeTrip(tripId: string) {
+    if (channels.value[tripId]) {
+      supabase.removeChannel(channels.value[tripId])
+      delete channels.value[tripId]
+    }
   }
 
   // ===== 旅行 CRUD =====
@@ -109,6 +146,7 @@ export const useTripStore = defineStore('trip', () => {
 
   async function removeTrip(id: string) {
     trips.value = trips.value.filter(t => t.id !== id)
+    unsubscribeTrip(id)
     await storage.deleteTrip(id)
   }
 
@@ -126,25 +164,15 @@ export const useTripStore = defineStore('trip', () => {
       } else {
         trips.value.unshift(trip)
       }
+      // 自动订阅实时更新
+      subscribeTrip(tripId)
     }
     return trip
   }
 
-  // 通过分享码加入
-  async function joinByShareCode(shareCode: string, nickname: string): Promise<Trip | null> {
-    const trip = await storage.getTripByShareCode(shareCode)
-    if (!trip) return null
-    // 检查是否已加入
-    const existingMemberId = storage.getLocalMemberId(trip.id)
-    if (existingMemberId) {
-      // 已加入，直接加载
-      await loadTripById(trip.id)
-      return trip
-    }
-    // 加入旅行
-    await joinTrip(trip.id, nickname)
-    await loadTripById(trip.id)
-    return trip
+  // 通过分享码查找旅行（不加入）
+  async function findByShareCode(shareCode: string): Promise<Trip | null> {
+    return await storage.getTripByShareCode(shareCode)
   }
 
   // 获取分享链接
@@ -290,7 +318,8 @@ export const useTripStore = defineStore('trip', () => {
   return {
     trips, categories, currentMemberIds,
     init,
-    getMyMemberId, hasJoined, joinTrip, joinByShareCode, getShareLink, loadTripById,
+    getMyMemberId, hasJoined, joinTrip, findByShareCode, getShareLink, loadTripById,
+    subscribeTrip, unsubscribeTrip,
     createTrip, addMember, removeMember, renameMember, updateTrip, removeTrip, getTripById,
     addExpense, updateExpense, removeExpense,
     getMemberBalances, getTransfers, getMemberSpending,
