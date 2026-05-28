@@ -102,7 +102,7 @@
 
       <!-- 均摊提示 -->
       <div v-if="splitMode === 'equal' && splitAmong.length > 0 && amountNum > 0" class="split-hint">
-        每人 {{ isForeignCurrency ? currencyInfo.symbol + '¥' : '¥' }}{{ formatMoney(amountNum / splitAmong.length) }}
+        每人 {{ showForeignSymbol ? currencyInfo.symbol : '¥' }}{{ formatMoney(amountNum / splitAmong.length) }}
       </div>
 
       <!-- 自定义金额输入 -->
@@ -117,7 +117,7 @@
             {{ getMemberName(memberId) }}
           </span>
           <div class="custom-input-wrap">
-            <span class="custom-currency">{{ isForeignCurrency ? currencyInfo.symbol : '¥' }}</span>
+            <span class="custom-currency">{{ showForeignSymbol ? currencyInfo.symbol : '¥' }}</span>
             <input
               v-model="customAmounts[memberId]"
               type="text"
@@ -130,8 +130,8 @@
         <div class="custom-summary">
           <span>合计</span>
           <span :class="{ over: customTotal > customCompareTotal + 0.01, under: customTotal < customCompareTotal - 0.01 }">
-            {{ isForeignCurrency ? currencyInfo.symbol : '¥' }}{{ formatMoney(customTotal) }}
-            <template v-if="isForeignCurrency"> ≈ ¥{{ formatMoney(customTotalCNY) }}</template>
+            {{ showForeignSymbol ? currencyInfo.symbol : '¥' }}{{ formatMoney(customTotal) }}
+            <template v-if="showForeignSymbol"> ≈ ¥{{ formatMoney(customTotalCNY) }}</template>
           </span>
         </div>
         <div v-if="Math.abs(customTotal - customCompareTotal) > 0.01 && customCompareTotal > 0" class="custom-warning">
@@ -231,6 +231,8 @@ const isEditing = computed(() => !!editingExpenseId)
 const trip = computed(() => store.getTripById(tripId))
 const currencyInfo = computed(() => getCurrencyInfo(trip.value?.currency || 'CNY'))
 const isForeignCurrency = computed(() => trip.value?.currency !== 'CNY')
+// 是否显示外币符号：外币旅行 + 用户输入了外币金额
+const showForeignSymbol = computed(() => isForeignCurrency.value && foreignAmountStr.value.trim() !== '')
 
 const amountStr = ref('')
 const foreignAmountStr = ref('')
