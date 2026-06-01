@@ -35,6 +35,19 @@ export function removeLocalMemberId(tripId: string): void {
   localStorage.removeItem(MEMBER_KEY_PREFIX + tripId)
 }
 
+// 获取所有已加入的旅行 ID
+export function getAllJoinedTripIds(): string[] {
+  const ids: string[] = []
+  for (let i = 0; i < localStorage.length; i++) {
+    const key = localStorage.key(i)
+    if (key && key.startsWith(MEMBER_KEY_PREFIX)) {
+      const tripId = key.slice(MEMBER_KEY_PREFIX.length)
+      if (tripId) ids.push(tripId)
+    }
+  }
+  return ids
+}
+
 // ===== 旅行 CRUD =====
 
 export async function getTrips(): Promise<Trip[]> {

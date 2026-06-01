@@ -16,9 +16,15 @@ export const useTripStore = defineStore('trip', () => {
   // Realtime 订阅管理
   const channels = ref<Record<string, RealtimeChannel>>({})
 
-  // 初始化
+  // 初始化 - 只加载用户已加入的旅行
   async function init() {
-    trips.value = await storage.getTrips()
+    const joinedTripIds = storage.getAllJoinedTripIds()
+    const loadedTrips: Trip[] = []
+    for (const tripId of joinedTripIds) {
+      const trip = await loadTripById(tripId)
+      if (trip) loadedTrips.push(trip)
+    }
+    trips.value = loadedTrips
   }
 
   // 获取当前用户在某个旅行中的 member_id
