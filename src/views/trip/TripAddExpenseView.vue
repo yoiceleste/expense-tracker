@@ -14,18 +14,20 @@
 
     <!-- 金额 -->
     <div class="amount-card">
+      <!-- 外币输入行（仅外币旅行显示） -->
       <div v-if="isForeignCurrency" class="foreign-amount-row">
         <span class="foreign-symbol">{{ currencyInfo.symbol }}</span>
         <input
           v-model="foreignAmountStr"
           type="text"
           class="foreign-input"
-          placeholder="外币金额"
+          :placeholder="currencyInfo.code"
           inputmode="decimal"
           @input="onForeignAmountChange"
         />
         <span class="foreign-code">{{ trip?.currency }}</span>
       </div>
+      <!-- 人民币输入行（始终显示，作为基准金额） -->
       <div class="cny-amount-row">
         <span class="currency">¥</span>
         <input
@@ -34,6 +36,7 @@
           class="amount-input"
           placeholder="0.00"
           inputmode="decimal"
+          @input="onCNYAmountChange"
         />
         <span class="cny-label">CNY</span>
       </div>
@@ -82,6 +85,11 @@
         </div>
       </div>
 
+      <!-- 未选择分摊人提示 -->
+      <div v-if="splitAmong.length === 0" class="split-hint" style="background: #fff3e0; color: #e65100;">
+        请选择参与分摊的成员
+      </div>
+
       <!-- 分摊方式切换 -->
       <div v-if="splitAmong.length > 1" class="mode-switch">
         <button
@@ -102,7 +110,7 @@
 
       <!-- 均摊提示 -->
       <div v-if="splitMode === 'equal' && splitAmong.length > 0 && amountNum > 0" class="split-hint">
-        每人 {{ showForeignSymbol ? currencyInfo.symbol : '¥' }}{{ formatMoney(amountNum / splitAmong.length) }}
+        每人 ¥{{ formatMoney(amountNum / splitAmong.length) }}
       </div>
 
       <!-- 自定义金额输入 -->
@@ -117,7 +125,7 @@
             {{ getMemberName(memberId) }}
           </span>
           <div class="custom-input-wrap">
-            <span class="custom-currency">{{ showForeignSymbol ? currencyInfo.symbol : '¥' }}</span>
+            <span class="custom-currency">¥</span>
             <input
               v-model="customAmounts[memberId]"
               type="text"
@@ -129,13 +137,12 @@
         </div>
         <div class="custom-summary">
           <span>合计</span>
-          <span :class="{ over: customTotal > customCompareTotal + 0.01, under: customTotal < customCompareTotal - 0.01 }">
-            {{ showForeignSymbol ? currencyInfo.symbol : '¥' }}{{ formatMoney(customTotal) }}
-            <template v-if="showForeignSymbol"> ≈ ¥{{ formatMoney(customTotalCNY) }}</template>
+          <span :class="{ over: customTotal > amountNum + 0.01, under: customTotal < amountNum - 0.01 }">
+            ¥{{ formatMoney(customTotal) }}
           </span>
         </div>
-        <div v-if="Math.abs(customTotal - customCompareTotal) > 0.01 && customCompareTotal > 0" class="custom-warning">
-          {{ customTotal > customCompareTotal ? '⚠️ 自定义金额合计超出付款金额' : '⚠️ 自定义金额合计不足付款金额' }}
+        <div v-if="Math.abs(customTotal - amountNum) > 0.01 && amountNum > 0" class="custom-warning">
+          {{ customTotal > amountNum ? '⚠️ 自定义金额合计超出付款金额' : '⚠️ 自定义金额合计不足付款金额' }}
         </div>
       </div>
     </div>
@@ -213,11 +220,11 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, reactive, watch, onMounted } from 'vue'
+import { ref, computed, reactive, watch, onMounted, nextTick } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useTripStore } from '../../stores/trip'
 import { formatMoney } from '../../utils/trip-storage'
-import { fetchRates, convertToCNY, getRateText, convertFromCNY } from '../../utils/exchange-rate'
+import { fetchRates, convertToCNY, getRateText } from '../../utils/exchange-rate'
 import { getCurrencyInfo } from '../../types/currencies'
 import type { TripExpense } from '../../types/trip'
 
@@ -231,11 +238,13 @@ const isEditing = computed(() => !!editingExpenseId)
 const trip = computed(() => store.getTripById(tripId))
 const currencyInfo = computed(() => getCurrencyInfo(trip.value?.currency || 'CNY'))
 const isForeignCurrency = computed(() => trip.value?.currency !== 'CNY')
-// 是否显示外币符号：外币旅行 + 用户输入了外币金额
-const showForeignSymbol = computed(() => isForeignCurrency.value && foreignAmountStr.value.trim() !== '')
 
+// === 金额状态 ===
+// amountStr: 始终存储人民币金额（作为结算基准）
+// foreignAmountStr: 外币金额（仅显示用，不用于结算）
 const amountStr = ref('')
 const foreignAmountStr = ref('')
+
 const payerId = ref('')
 const splitAmong = ref<string[]>([])
 const splitMode = ref<'equal' | 'custom'>('equal')
@@ -251,7 +260,6 @@ const showDraftTip = ref(false)
 const DRAFT_KEY = `trip_expense_draft_${tripId}`
 
 function saveDraft() {
-  // 只在有内容时才保存草稿
   if (!amountStr.value && !note.value && !foreignAmountStr.value) return
   const draft = {
     amountStr: amountStr.value,
@@ -264,7 +272,6 @@ function saveDraft() {
     payMethod: payMethod.value,
     note: note.value,
     date: date.value,
-    // 图片太大不存草稿
   }
   try {
     sessionStorage.setItem(DRAFT_KEY, JSON.stringify(draft))
@@ -309,13 +316,14 @@ function restoreDraft() {
 function discardDraft() {
   clearDraft()
   showDraftTip.value = false
-  // 重置表单
+  resetForm()
+}
+
+function resetForm() {
   amountStr.value = ''
   foreignAmountStr.value = ''
-  if (trip.value) {
-    payerId.value = trip.value.members[0]?.id || ''
-    splitAmong.value = trip.value.members.map(m => m.id)
-  }
+  payerId.value = trip.value?.members[0]?.id || ''
+  splitAmong.value = []
   splitMode.value = 'equal'
   Object.keys(customAmounts).forEach(k => delete customAmounts[k])
   categoryId.value = store.categories[0]?.id || ''
@@ -351,22 +359,6 @@ const customTotal = computed(() => {
   return splitAmong.value.reduce((s, id) => s + (parseFloat(customAmounts[id]) || 0), 0)
 })
 
-// 自定义模式下，合计应该和什么对比：用户输入了外币则对比外币总额，否则对比人民币总额
-const customCompareTotal = computed(() => {
-  if (showForeignSymbol.value && foreignAmountStr.value) {
-    return parseFloat(foreignAmountStr.value) || 0
-  }
-  return amountNum.value
-})
-
-// 自定义合计换算为人民币
-const customTotalCNY = computed(() => {
-  if (showForeignSymbol.value && exchangeRates) {
-    return convertToCNY(customTotal.value, trip.value!.currency, exchangeRates)
-  }
-  return customTotal.value
-})
-
 const isAllSelected = computed(() =>
   trip.value ? splitAmong.value.length === trip.value.members.length : false
 )
@@ -387,12 +379,14 @@ onMounted(async () => {
     const expense = trip.value.expenses.find(e => e.id === editingExpenseId)
     if (expense) loadExpense(expense)
   } else {
-    // 新增模式：恢复草稿
-    restoreDraft()
+    // 新增模式：恢复草稿，如果没有草稿则初始化默认值
+    if (!loadDraft()) {
+      resetForm()
+    }
   }
 })
 
-// 图片压缩：最大宽度 800px，质量 0.6
+// 图片压缩
 function compressImage(file: File): Promise<string> {
   return new Promise((resolve) => {
     const reader = new FileReader()
@@ -432,7 +426,6 @@ async function onImageSelect(e: Event) {
 }
 
 function previewImage(idx: number) {
-  // 简单的全屏预览
   const img = document.createElement('div')
   img.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.85);display:flex;align-items:center;justify-content:center;z-index:9999;cursor:pointer'
   img.innerHTML = `<img src="${images.value[idx]}" style="max-width:95%;max-height:90%;border-radius:8px" />`
@@ -440,7 +433,9 @@ function previewImage(idx: number) {
   document.body.appendChild(img)
 }
 
+// ===== 加载已有消费记录（编辑模式） =====
 function loadExpense(expense: TripExpense) {
+  // amount 始终是人民币基准金额
   amountStr.value = expense.amount.toFixed(2)
   payerId.value = expense.payerId
   splitAmong.value = [...expense.splitAmong]
@@ -451,25 +446,21 @@ function loadExpense(expense: TripExpense) {
   note.value = expense.note
   date.value = expense.date
 
-  // 外币旅行时，反算外币金额
+  // 外币旅行时，根据人民币金额反算外币金额用于显示
   if (isForeignCurrency.value && exchangeRates) {
-    const foreign = convertFromCNY(expense.amount, trip.value!.currency, exchangeRates)
+    const foreign = expense.amount / exchangeRates[trip.value!.currency]
     foreignAmountStr.value = foreign >= 1 ? foreign.toFixed(0) : foreign.toFixed(2)
   }
 
-  // 自定义金额：反算为外币显示
-  if (expense.splitMode === 'custom' && expense.splitAmounts && isForeignCurrency.value && exchangeRates) {
-    Object.entries(expense.splitAmounts).forEach(([memberId, cnyAmount]) => {
-      const foreign = convertFromCNY(cnyAmount, trip.value!.currency, exchangeRates)
-      customAmounts[memberId] = foreign >= 1 ? foreign.toFixed(0) : foreign.toFixed(2)
-    })
-  } else if (expense.splitMode === 'custom' && expense.splitAmounts) {
+  // 自定义金额：直接显示人民币金额（因为存储的就是人民币）
+  if (expense.splitMode === 'custom' && expense.splitAmounts) {
     Object.entries(expense.splitAmounts).forEach(([memberId, amount]) => {
       customAmounts[memberId] = amount.toFixed(2)
     })
   }
 }
 
+// ===== 外币金额变化：换算为人民币 =====
 function onForeignAmountChange() {
   const foreignAmount = parseFloat(foreignAmountStr.value) || 0
   if (foreignAmount > 0 && exchangeRates) {
@@ -480,13 +471,18 @@ function onForeignAmountChange() {
   }
 }
 
-// 初始化默认选中（仅新增模式）
-if (trip.value && !isEditing.value) {
-  payerId.value = trip.value.members[0]?.id || ''
-  splitAmong.value = trip.value.members.map(m => m.id)
+// ===== 人民币金额变化：如果是外币旅行，反算外币金额 =====
+function onCNYAmountChange() {
+  const cnyAmount = parseFloat(amountStr.value) || 0
+  if (cnyAmount > 0 && isForeignCurrency.value && exchangeRates) {
+    const foreign = cnyAmount / exchangeRates[trip.value!.currency]
+    foreignAmountStr.value = foreign >= 1 ? foreign.toFixed(0) : foreign.toFixed(2)
+  } else if (!cnyAmount) {
+    foreignAmountStr.value = ''
+  }
 }
 
-// 当分摊人变化时，清理自定义金额
+// ===== 当分摊人变化时，清理自定义金额 =====
 watch(splitAmong, (newVal) => {
   const keys = Object.keys(customAmounts)
   keys.forEach(k => {
@@ -517,42 +513,38 @@ function getMemberColor(id: string) {
   return trip.value ? store.getMemberColor(trip.value, id) : '#ccc'
 }
 
+// ===== 保存 =====
 async function save() {
   if (!amountNum.value || amountNum.value <= 0) { alert('请输入金额'); return }
   if (!payerId.value) { alert('请选择付款人'); return }
-  if (splitAmong.value.length === 0) { alert('请选择分摊人'); return }
+  if (splitAmong.value.length === 0) { alert('请选择参与分摊的成员'); return }
 
   // 自定义模式下校验
   if (splitMode.value === 'custom') {
     if (customTotal.value <= 0) { alert('请输入每个人的金额'); return }
   }
 
+  // splitAmounts 始终存储人民币金额
   const splitAmounts: Record<string, number> = {}
   if (splitMode.value === 'custom') {
     splitAmong.value.forEach(id => {
-      const raw = parseFloat(customAmounts[id]) || 0
-      // 用户输入了外币金额时才换算为人民币
-      if (showForeignSymbol.value && exchangeRates) {
-        splitAmounts[id] = convertToCNY(raw, trip.value!.currency, exchangeRates)
-      } else {
-        splitAmounts[id] = raw
-      }
+      splitAmounts[id] = parseFloat(customAmounts[id]) || 0
     })
   }
 
   if (!isEditing.value) {
     await store.addExpense(tripId, {
-    payerId: payerId.value,
-    amount: amountNum.value,
-    splitAmong: [...splitAmong.value],
-    splitMode: splitMode.value,
-    splitAmounts,
-    categoryId: categoryId.value,
-    payMethod: payMethod.value,
-    images: [...images.value],
-    note: note.value.trim(),
-    date: date.value,
-  })
+      payerId: payerId.value,
+      amount: amountNum.value,
+      splitAmong: [...splitAmong.value],
+      splitMode: splitMode.value,
+      splitAmounts,
+      categoryId: categoryId.value,
+      payMethod: payMethod.value,
+      images: [...images.value],
+      note: note.value.trim(),
+      date: date.value,
+    })
   } else {
     await store.updateExpense(tripId, editingExpenseId, {
       payerId: payerId.value,

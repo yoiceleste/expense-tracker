@@ -287,11 +287,14 @@ export const useTripStore = defineStore('trip', () => {
     return trip.members.map(member => {
       const catMap = new Map<string, number>()
       trip.expenses.forEach(expense => {
-        if (!expense.splitAmong.includes(member.id)) return
         let perPerson: number
         if (expense.splitMode === 'custom' && expense.splitAmounts) {
+          // 自定义模式：只有 splitAmounts 中有记录的成员才参与
+          if (!(member.id in expense.splitAmounts)) return
           perPerson = expense.splitAmounts[member.id] || 0
         } else {
+          // 均摊模式：只有 splitAmong 中的成员才参与
+          if (!expense.splitAmong.includes(member.id)) return
           perPerson = expense.amount / expense.splitAmong.length
         }
         const current = catMap.get(expense.categoryId) || 0
