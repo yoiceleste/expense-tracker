@@ -50,8 +50,9 @@ export interface TripCategory {
 export interface Transfer {
   fromId: string
   toId: string
-  amount: number      // 原始币种金额
-  cnyAmount: number   // 人民币等值金额（仅外币旅行时使用）
+  amount: number      // 结算显示币种金额（默认使用旅行币种）
+  currency: string    // 结算显示币种
+  cnyAmount: number   // 人民币结算层金额
 }
 
 // 成员净余额
@@ -59,9 +60,12 @@ export interface MemberBalance {
   memberId: string
   name: string
   color: string
-  paid: number       // 原始币种
-  share: number      // 原始币种
-  balance: number    // 原始币种
+  paid: number       // 结算显示币种
+  share: number      // 结算显示币种
+  balance: number    // 结算显示币种
+  paidCny: number    // 人民币结算层
+  shareCny: number   // 人民币结算层
+  balanceCny: number // 人民币结算层
 }
 
 // 成员消费结构

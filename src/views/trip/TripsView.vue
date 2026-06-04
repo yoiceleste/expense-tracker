@@ -26,7 +26,7 @@
             · {{ trip.members.length }}人 · {{ trip.expenses.length }}笔
           </div>
         </div>
-        <div class="trip-amount">¥{{ formatMoney(getTripTotal(trip)) }}</div>
+        <div class="trip-amount">{{ formatTripTotals(trip) }}</div>
       </div>
       <div class="trip-members">
         <div
@@ -108,7 +108,7 @@ import { ref, watch, onMounted, nextTick } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { useTripStore } from '../../stores/trip'
 import { formatMoney } from '../../utils/trip-storage'
-import { popularCurrencies } from '../../types/currencies'
+import { getCurrencyInfo, popularCurrencies } from '../../types/currencies'
 import type { Trip } from '../../types/trip'
 
 const router = useRouter()
@@ -149,8 +149,13 @@ onMounted(() => {
   }
 })
 
-function getTripTotal(trip: Trip) {
-  return trip.expenses.reduce((s, e) => s + e.amount, 0)
+function formatTripTotals(trip: Trip) {
+  const totals = store.getTripTotalsByCurrency(trip)
+  const entries = Object.entries(totals)
+  if (entries.length === 0) return '¥0.00 CNY'
+  return entries
+    .map(([currency, amount]) => `${getCurrencyInfo(currency).symbol}${formatMoney(amount)} ${currency}`)
+    .join(' / ')
 }
 
 async function createTrip() {

@@ -8,7 +8,7 @@
         <div class="header-meta">
           <template v-if="trip?.startDate">{{ trip.startDate }}</template>
           <template v-if="trip?.startDate && trip?.endDate"> ~ {{ trip.endDate }}</template>
-          · {{ trip?.members.length || 0 }}人 · 共消费 <strong>{{ currencySymbol }}{{ formatMoney(total) }}</strong>
+          · {{ trip?.members.length || 0 }}人 · 共消费 <strong>{{ formatCurrencyTotals(totalByCurrency) }}</strong>
         </div>
       </div>
       <div class="header-actions">
@@ -104,7 +104,7 @@
     <div v-for="group in groupedExpenses" :key="group.date" class="date-group">
       <div class="date-header">
         <span class="date-label">{{ formatDateLabel(group.date) }}</span>
-        <span class="date-total">{{ currencySymbol }}{{ formatMoney(group.dayTotal) }}</span>
+        <span class="date-total">{{ formatCurrencyTotals(group.dayTotals) }}</span>
       </div>
       <div v-for="expense in group.expenses" :key="expense.id" class="expense-item">
         <div class="expense-top">
@@ -120,7 +120,7 @@
             </div>
           </div>
           <div class="expense-right">
-            <div class="expense-amount">{{ currencySymbol }}{{ formatMoney(expense.amount) }}</div>
+            <div class="expense-amount">{{ formatExpenseAmount(expense) }}</div>
             <button class="expense-edit" @click.stop="$router.push(`/trip/${tripId}/add?expenseId=${expense.id}`)">✏️</button>
             <button class="expense-delete" @click.stop="confirmDelete(expense.id)">×</button>
           </div>
@@ -152,7 +152,7 @@ const trip = computed(() => store.getTripById(tripId))
 const currencyInfo = computed(() => getCurrencyInfo(trip.value?.currency || 'CNY'))
 const isForeignCurrency = computed(() => trip.value?.currency !== 'CNY')
 const currencySymbol = computed(() => isForeignCurrency.value ? currencyInfo.value.symbol : '¥')
-const total = computed(() => trip.value ? store.getTripTotal(trip.value) : 0)
+const totalByCurrency = computed(() => trip.value ? store.getTripTotalsByCurrency(trip.value) : {})
 
 // 分享链接
 function copyShareLink() {
@@ -195,15 +195,16 @@ const sortedExpenses = computed(() => {
 
 // 按日期分组
 const groupedExpenses = computed(() => {
-  const groups: { date: string; expenses: typeof sortedExpenses.value; dayTotal: number }[] = []
+  const groups: { date: string; expenses: typeof sortedExpenses.value; dayTotals: Record<string, number> }[] = []
   let currentDate = ''
   for (const expense of sortedExpenses.value) {
     if (expense.date !== currentDate) {
       currentDate = expense.date
-      groups.push({ date: currentDate, expenses: [], dayTotal: 0 })
+      groups.push({ date: currentDate, expenses: [], dayTotals: {} })
     }
     groups[groups.length - 1].expenses.push(expense)
-    groups[groups.length - 1].dayTotal += expense.amount
+    const currency = store.getExpenseCurrency(expense, trip.value!)
+    groups[groups.length - 1].dayTotals[currency] = (groups[groups.length - 1].dayTotals[currency] || 0) + expense.amount
   }
   return groups
 })
@@ -219,6 +220,21 @@ onMounted(async () => {
     rateLoading.value = false
   }
 })
+
+function formatAmount(amount: number, currency: string): string {
+  return `${getCurrencyInfo(currency).symbol}${formatMoney(amount)} ${currency}`
+}
+
+function formatExpenseAmount(expense: any): string {
+  const currency = trip.value ? store.getExpenseCurrency(expense, trip.value) : expense.currency || 'CNY'
+  return formatAmount(expense.amount, currency)
+}
+
+function formatCurrencyTotals(totals: Record<string, number>): string {
+  const entries = Object.entries(totals)
+  if (entries.length === 0) return '¥0.00 CNY'
+  return entries.map(([currency, amount]) => formatAmount(amount, currency)).join(' / ')
+}
 
 function getCategoryIcon(id: string) {
   return store.categories.find(c => c.id === id)?.icon || '💰'
