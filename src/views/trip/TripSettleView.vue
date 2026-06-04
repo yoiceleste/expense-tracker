@@ -13,19 +13,22 @@
       <div class="summary-sub">最优转账方案，共 {{ transfers.length }} 笔</div>
     </div>
 
-    <!-- 各人余额 -->
-    <div class="section-title">收支明细</div>
+    <div v-if="rateNotice" class="rate-notice">
+      {{ rateNotice }}
+    </div>
+
+    <!-- 各人净额 -->
+    <div class="section-title">成员净额</div>
     <div class="balance-list">
       <div v-for="b in balances" :key="b.memberId" class="balance-item">
         <div class="balance-left">
           <span class="balance-avatar" :style="{ background: b.color }">{{ b.name[0] }}</span>
-          <span class="balance-name">{{ b.name }}</span>
+          <div>
+            <div class="balance-name">{{ b.name }}</div>
+            <div class="balance-status">{{ getBalanceStatus(b.balance) }}</div>
+          </div>
         </div>
         <div class="balance-right">
-          <div class="balance-detail">
-            <span class="paid">付 {{ currencySymbol }}{{ formatMoney(b.paid) }}</span>
-            <span class="share">摊 {{ currencySymbol }}{{ formatMoney(b.share) }}</span>
-          </div>
           <div class="balance-net" :class="{ positive: b.balance > 0, negative: b.balance < 0 }">
             {{ b.balance > 0 ? '+' : '' }}{{ currencySymbol }}{{ formatMoney(b.balance) }}
           </div>
@@ -47,36 +50,31 @@
       <div class="done-text">已经两清了，无需转账</div>
     </div>
 
-    <div v-for="(t, i) in transfers" :key="i" class="transfer-card">
-      <div class="transfer-line">
-        <div class="transfer-person from">
-          <span class="tp-avatar" :style="{ background: getColor(t.fromId) }">
-            {{ getName(t.fromId)[0] }}
-          </span>
-          <span class="tp-name">{{ getName(t.fromId) }}</span>
-        </div>
-        <div class="transfer-arrow">
-          <span class="arrow-amount">{{ getCurrencyInfo(t.currency).symbol }}{{ formatMoney(t.amount) }} {{ t.currency }}</span>
-          <span v-if="t.cnyAmount > 0" class="arrow-cny">≈ ¥{{ formatMoney(t.cnyAmount) }} CNY</span>
-          <span class="arrow-icon">→</span>
-        </div>
-        <div class="transfer-person to">
-          <span class="tp-avatar" :style="{ background: getColor(t.toId) }">
-            {{ getName(t.toId)[0] }}
-          </span>
-          <span class="tp-name">{{ getName(t.toId) }}</span>
-        </div>
+    <div v-for="(t, i) in transfers" :key="i" class="transfer-card readable-transfer">
+      <div class="debt-title">
+        <span class="tp-avatar small" :style="{ background: getColor(t.fromId) }">{{ getName(t.fromId)[0] }}</span>
+        <strong>{{ getName(t.fromId) }} 欠 {{ getName(t.toId) }}</strong>
+      </div>
+      <div class="transfer-main-amount">{{ formatAmount(t.amount, t.currency) }}</div>
+      <div v-if="t.currency !== 'CNY' && t.cnyAmount > 0" class="transfer-cny">≈ ¥{{ formatMoney(t.cnyAmount) }} CNY</div>
+      <div v-if="t.currency !== 'CNY' && rateLine(t.currency)" class="transfer-rate">汇率：{{ rateLine(t.currency) }}</div>
+      <div v-if="t.currency !== 'CNY' && t.cnyAmount > 0" class="transfer-advice">
+        最终建议：{{ getName(t.fromId) }} 转给 {{ getName(t.toId) }} ¥{{ formatMoney(t.cnyAmount) }}
+      </div>
+      <div v-else class="transfer-advice">
+        最终建议：{{ getName(t.fromId) }} 转给 {{ getName(t.toId) }} {{ formatAmount(t.amount, t.currency) }}
       </div>
     </div>
   </div>
 </template>
 
 <script setup lang="ts">
-import { computed, onMounted } from 'vue'
+import { computed, onMounted, ref } from 'vue'
 import { useRoute } from 'vue-router'
 import { useTripStore } from '../../stores/trip'
 import { formatMoney } from '../../utils/trip-storage'
 import { getCurrencyInfo } from '../../types/currencies'
+import { fetchRates } from '../../utils/exchange-rate'
 
 const route = useRoute()
 const store = useTripStore()
@@ -90,9 +88,21 @@ const totalByCurrency = computed(() => trip.value ? store.getTripTotalsByCurrenc
 const totalCny = computed(() => trip.value ? store.getTripTotalCny(trip.value) : 0)
 const balances = computed(() => trip.value ? store.getMemberBalances(trip.value) : [])
 const transfers = computed(() => trip.value ? store.getTransfers(trip.value) : [])
+const exchangeRates = ref<Record<string, number>>({})
+const rateNotice = ref('')
 
 onMounted(async () => {
   await store.loadExchangeRates()
+  const data = await fetchRates()
+  exchangeRates.value = data.rates
+  if (trip.value?.currency && trip.value.currency !== 'CNY') {
+    const line = rateLine(trip.value.currency)
+    if (data.timestamp === 0 || data.updateTime === 'unknown') {
+      rateNotice.value = `当前使用估算汇率：${line}。如需精准结算，请以实际支付/换汇金额为准。`
+    } else {
+      rateNotice.value = `汇率来源：open.er-api.com，更新时间：${data.updateTime}。${line}`
+    }
+  }
 })
 
 function formatAmount(amount: number, currency: string): string {
@@ -103,6 +113,19 @@ function formatCurrencyTotals(totals: Record<string, number>): string {
   const entries = Object.entries(totals)
   if (entries.length === 0) return '¥0.00 CNY'
   return entries.map(([currency, amount]) => formatAmount(amount, currency)).join(' / ')
+}
+
+function rateLine(currency: string): string {
+  if (currency === 'CNY') return ''
+  const rate = exchangeRates.value[currency]
+  if (!rate) return ''
+  return `1 ${currency} ≈ ${(1 / rate).toFixed(4)} CNY`
+}
+
+function getBalanceStatus(balance: number): string {
+  if (balance > 0.01) return '应收'
+  if (balance < -0.01) return '应付'
+  return '已结清'
 }
 
 function getName(id: string) {
@@ -118,10 +141,16 @@ function copySettlement() {
   const lines = transfers.value.map((t, i) => {
     const from = getName(t.fromId)
     const to = getName(t.toId)
-    if (t.cnyAmount > 0) {
-      return `${i + 1}. ${from} → ${to}：${getCurrencyInfo(t.currency).symbol}${formatMoney(t.amount)} ${t.currency}（≈ ¥${formatMoney(t.cnyAmount)} CNY）`
+    if (t.currency !== 'CNY' && t.cnyAmount > 0) {
+      const rate = rateLine(t.currency)
+      return `${i + 1}. ${from} 欠 ${to}
+${formatAmount(t.amount, t.currency)}
+≈ ¥${formatMoney(t.cnyAmount)} CNY${rate ? `
+汇率：${rate}` : ''}
+最终建议：${from} 转给 ${to} ¥${formatMoney(t.cnyAmount)}`
     }
-    return `${i + 1}. ${from} → ${to}：${getCurrencyInfo(t.currency).symbol}${formatMoney(t.amount)} ${t.currency}`
+    return `${i + 1}. ${from} 欠 ${to}
+${formatAmount(t.amount, t.currency)}`
   })
   let header = `【${trip.value.name} 结算方案】\n总消费：${formatCurrencyTotals(totalByCurrency.value)}`
   if (totalCny.value > 0) {
@@ -262,18 +291,14 @@ function copySettlement() {
   font-weight: 500;
 }
 
-.balance-right {
-  text-align: right;
-}
-
-.balance-detail {
+.balance-status {
+  margin-top: 2px;
   font-size: 12px;
   color: var(--text-secondary);
-  margin-bottom: 2px;
 }
 
-.balance-detail .paid {
-  margin-right: 8px;
+.balance-right {
+  text-align: right;
 }
 
 .balance-net {
@@ -295,6 +320,16 @@ function copySettlement() {
   margin-top: 2px;
 }
 
+.rate-notice {
+  margin: -8px 0 18px;
+  padding: 10px 12px;
+  border-radius: 12px;
+  background: #fff8e1;
+  color: #8d6e00;
+  font-size: 12px;
+  line-height: 1.5;
+}
+
 /* 转账卡片 */
 .transfer-card {
   background: var(--card-bg);
@@ -308,6 +343,47 @@ function copySettlement() {
   display: flex;
   align-items: center;
   justify-content: space-between;
+}
+
+.readable-transfer {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.debt-title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 16px;
+}
+
+.tp-avatar.small {
+  width: 28px;
+  height: 28px;
+  font-size: 12px;
+}
+
+.transfer-main-amount {
+  font-size: 22px;
+  font-weight: 700;
+  color: var(--primary);
+}
+
+.transfer-cny,
+.transfer-rate {
+  font-size: 13px;
+  color: var(--text-secondary);
+}
+
+.transfer-advice {
+  margin-top: 2px;
+  padding: 8px 10px;
+  border-radius: 10px;
+  background: var(--bg);
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text);
 }
 
 .transfer-person {
