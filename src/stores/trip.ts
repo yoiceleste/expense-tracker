@@ -4,6 +4,7 @@ import type { Trip, TripExpense, TripMember, Transfer, MemberBalance, MemberSpen
 import { defaultTripCategories } from '../types/trip-defaults'
 import * as storage from '../utils/trip-storage'
 import { supabase } from '../lib/supabase'
+import { convertToCNY } from '../utils/exchange-rate'
 import type { RealtimeChannel } from '@supabase/supabase-js'
 
 export const useTripStore = defineStore('trip', () => {
@@ -262,6 +263,21 @@ export const useTripStore = defineStore('trip', () => {
     return balances
   }
 
+  // 汇率缓存（用于结算时计算人民币等值）
+  let cachedRates: Record<string, number> | null = null
+
+  async function loadExchangeRates(): Promise<Record<string, number>> {
+    if (cachedRates) return cachedRates
+    try {
+      const { fetchRates } = await import('../utils/exchange-rate')
+      const data = await fetchRates()
+      cachedRates = data.rates
+      return cachedRates
+    } catch {
+      return {}
+    }
+  }
+
   function getTransfers(trip: Trip): Transfer[] {
     const balances = getMemberBalances(trip)
     const transfers: Transfer[] = []
@@ -273,7 +289,12 @@ export const useTripStore = defineStore('trip', () => {
     while (i < creditors.length && j < debtors.length) {
       const amount = Math.min(creditors[i].balance, debtors[j].balance)
       if (amount > 0.01) {
-        transfers.push({ fromId: debtors[j].memberId, toId: creditors[i].memberId, amount: Math.round(amount * 100) / 100 })
+        const roundedAmount = Math.round(amount * 100) / 100
+        let cnyAmount = 0
+        if (trip.currency !== 'CNY' && cachedRates) {
+          cnyAmount = Math.round(convertToCNY(roundedAmount, trip.currency, cachedRates) * 100) / 100
+        }
+        transfers.push({ fromId: debtors[j].memberId, toId: creditors[i].memberId, amount: roundedAmount, cnyAmount })
       }
       creditors[i].balance -= amount
       debtors[j].balance -= amount
@@ -333,5 +354,6 @@ export const useTripStore = defineStore('trip', () => {
     addExpense, updateExpense, removeExpense,
     getMemberBalances, getTransfers, getMemberSpending,
     getMemberName, getMemberColor, getTripTotal,
+    loadExchangeRates,
   }
 })

@@ -8,7 +8,7 @@
         <div class="header-meta">
           <template v-if="trip?.startDate">{{ trip.startDate }}</template>
           <template v-if="trip?.startDate && trip?.endDate"> ~ {{ trip.endDate }}</template>
-          · {{ trip?.members.length || 0 }}人 · 共消费 <strong>¥{{ formatMoney(total) }}</strong>
+          · {{ trip?.members.length || 0 }}人 · 共消费 <strong>{{ currencySymbol }}{{ formatMoney(total) }}</strong>
         </div>
       </div>
       <div class="header-actions">
@@ -104,7 +104,7 @@
     <div v-for="group in groupedExpenses" :key="group.date" class="date-group">
       <div class="date-header">
         <span class="date-label">{{ formatDateLabel(group.date) }}</span>
-        <span class="date-total">¥{{ formatMoney(group.dayTotal) }}</span>
+        <span class="date-total">{{ currencySymbol }}{{ formatMoney(group.dayTotal) }}</span>
       </div>
       <div v-for="expense in group.expenses" :key="expense.id" class="expense-item">
         <div class="expense-top">
@@ -120,7 +120,7 @@
             </div>
           </div>
           <div class="expense-right">
-            <div class="expense-amount">¥{{ formatMoney(expense.amount) }}</div>
+            <div class="expense-amount">{{ currencySymbol }}{{ formatMoney(expense.amount) }}</div>
             <button class="expense-edit" @click.stop="$router.push(`/trip/${tripId}/add?expenseId=${expense.id}`)">✏️</button>
             <button class="expense-delete" @click.stop="confirmDelete(expense.id)">×</button>
           </div>
@@ -147,6 +147,12 @@ const route = useRoute()
 const router = useRouter()
 const store = useTripStore()
 const tripId = route.params.id as string
+
+const trip = computed(() => store.getTripById(tripId))
+const currencyInfo = computed(() => getCurrencyInfo(trip.value?.currency || 'CNY'))
+const isForeignCurrency = computed(() => trip.value?.currency !== 'CNY')
+const currencySymbol = computed(() => isForeignCurrency.value ? currencyInfo.value.symbol : '¥')
+const total = computed(() => trip.value ? store.getTripTotal(trip.value) : 0)
 
 // 分享链接
 function copyShareLink() {
@@ -178,8 +184,6 @@ onMounted(async () => {
   }
 })
 
-const trip = computed(() => store.getTripById(tripId))
-const total = computed(() => trip.value ? store.getTripTotal(trip.value) : 0)
 const sortedExpenses = computed(() => {
   if (!trip.value) return []
   return [...trip.value.expenses].sort((a, b) => {
@@ -203,8 +207,6 @@ const groupedExpenses = computed(() => {
   }
   return groups
 })
-
-const currencyInfo = computed(() => getCurrencyInfo(trip.value?.currency || 'CNY'))
 
 const rateText = ref('')
 const rateLoading = ref(true)

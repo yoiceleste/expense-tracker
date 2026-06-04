@@ -14,21 +14,20 @@
 
     <!-- 金额 -->
     <div class="amount-card">
-      <!-- 外币输入行（仅外币旅行显示） -->
+      <!-- 外币旅行：只显示外币金额输入框（大字号） -->
       <div v-if="isForeignCurrency" class="foreign-amount-row">
         <span class="foreign-symbol">{{ currencyInfo.symbol }}</span>
         <input
-          v-model="foreignAmountStr"
+          v-model="amountStr"
           type="text"
           class="foreign-input"
           :placeholder="currencyInfo.code"
           inputmode="decimal"
-          @input="onForeignAmountChange"
         />
         <span class="foreign-code">{{ trip?.currency }}</span>
       </div>
-      <!-- 人民币输入行（始终显示，作为基准金额） -->
-      <div class="cny-amount-row">
+      <!-- 人民币旅行：只显示人民币金额输入框 -->
+      <div v-else class="cny-amount-row">
         <span class="currency">¥</span>
         <input
           v-model="amountStr"
@@ -36,12 +35,15 @@
           class="amount-input"
           placeholder="0.00"
           inputmode="decimal"
-          @input="onCNYAmountChange"
         />
         <span class="cny-label">CNY</span>
       </div>
       <div v-if="isForeignCurrency && rateText" class="rate-hint">
         {{ rateText }}
+      </div>
+      <!-- 外币旅行时，显示人民币等值（只读） -->
+      <div v-if="isForeignCurrency && amountNum > 0 && cnyEquivalent > 0" class="rate-hint">
+        ≈ ¥{{ formatMoney(cnyEquivalent) }} CNY
       </div>
     </div>
 
@@ -110,7 +112,7 @@
 
       <!-- 均摊提示 -->
       <div v-if="splitMode === 'equal' && splitAmong.length > 0 && amountNum > 0" class="split-hint">
-        每人 ¥{{ formatMoney(amountNum / splitAmong.length) }}
+        每人 {{ currencySymbol }}{{ formatMoney(amountNum / splitAmong.length) }}
       </div>
 
       <!-- 自定义金额输入 -->
@@ -125,7 +127,7 @@
             {{ getMemberName(memberId) }}
           </span>
           <div class="custom-input-wrap">
-            <span class="custom-currency">¥</span>
+            <span class="custom-currency">{{ currencySymbol }}</span>
             <input
               v-model="customAmounts[memberId]"
               type="text"
@@ -138,7 +140,7 @@
         <div class="custom-summary">
           <span>合计</span>
           <span :class="{ over: customTotal > amountNum + 0.01, under: customTotal < amountNum - 0.01 }">
-            ¥{{ formatMoney(customTotal) }}
+            {{ currencySymbol }}{{ formatMoney(customTotal) }}
           </span>
         </div>
         <div v-if="Math.abs(customTotal - amountNum) > 0.01 && amountNum > 0" class="custom-warning">
@@ -238,12 +240,11 @@ const isEditing = computed(() => !!editingExpenseId)
 const trip = computed(() => store.getTripById(tripId))
 const currencyInfo = computed(() => getCurrencyInfo(trip.value?.currency || 'CNY'))
 const isForeignCurrency = computed(() => trip.value?.currency !== 'CNY')
+const currencySymbol = computed(() => isForeignCurrency.value ? currencyInfo.value.symbol : '¥')
 
 // === 金额状态 ===
-// amountStr: 始终存储人民币金额（作为结算基准）
-// foreignAmountStr: 外币金额（仅显示用，不用于结算）
+// amountStr: 始终存储原始币种金额（外币旅行存外币，人民币旅行存人民币）
 const amountStr = ref('')
-const foreignAmountStr = ref('')
 
 const payerId = ref('')
 const splitAmong = ref<string[]>([])
@@ -260,10 +261,9 @@ const showDraftTip = ref(false)
 const DRAFT_KEY = `trip_expense_draft_${tripId}`
 
 function saveDraft() {
-  if (!amountStr.value && !note.value && !foreignAmountStr.value) return
+  if (!amountStr.value && !note.value) return
   const draft = {
     amountStr: amountStr.value,
-    foreignAmountStr: foreignAmountStr.value,
     payerId: payerId.value,
     splitAmong: splitAmong.value,
     splitMode: splitMode.value,
@@ -283,9 +283,8 @@ function loadDraft(): boolean {
     const raw = sessionStorage.getItem(DRAFT_KEY)
     if (!raw) return false
     const draft = JSON.parse(raw)
-    if (!draft.amountStr && !draft.note && !draft.foreignAmountStr) return false
+    if (!draft.amountStr && !draft.note) return false
     amountStr.value = draft.amountStr || ''
-    foreignAmountStr.value = draft.foreignAmountStr || ''
     payerId.value = draft.payerId || ''
     splitAmong.value = draft.splitAmong || []
     splitMode.value = draft.splitMode || 'equal'
@@ -321,7 +320,6 @@ function discardDraft() {
 
 function resetForm() {
   amountStr.value = ''
-  foreignAmountStr.value = ''
   payerId.value = trip.value?.members[0]?.id || ''
   splitAmong.value = []
   splitMode.value = 'equal'
@@ -339,7 +337,7 @@ function scheduleDraftSave() {
   draftTimer = setTimeout(saveDraft, 500)
 }
 
-watch([amountStr, foreignAmountStr, payerId, splitAmong, splitMode, categoryId, payMethod, note, date], () => {
+watch([amountStr, payerId, splitAmong, splitMode, categoryId, payMethod, note, date], () => {
   scheduleDraftSave()
 }, { deep: true })
 
@@ -366,6 +364,12 @@ const isAllSelected = computed(() =>
 // 汇率相关
 const rateText = ref('')
 let exchangeRates: Record<string, number> = {}
+
+// 外币旅行时的人民币等值（只读显示）
+const cnyEquivalent = computed(() => {
+  if (!isForeignCurrency.value || !exchangeRates || amountNum.value <= 0) return 0
+  return convertToCNY(amountNum.value, trip.value!.currency, exchangeRates)
+})
 
 onMounted(async () => {
   if (trip.value && trip.value.currency !== 'CNY') {
@@ -435,7 +439,7 @@ function previewImage(idx: number) {
 
 // ===== 加载已有消费记录（编辑模式） =====
 function loadExpense(expense: TripExpense) {
-  // amount 始终是人民币基准金额
+  // 直接用原始币种金额填充输入框
   amountStr.value = expense.amount.toFixed(2)
   payerId.value = expense.payerId
   splitAmong.value = [...expense.splitAmong]
@@ -446,39 +450,11 @@ function loadExpense(expense: TripExpense) {
   note.value = expense.note
   date.value = expense.date
 
-  // 外币旅行时，根据人民币金额反算外币金额用于显示
-  if (isForeignCurrency.value && exchangeRates) {
-    const foreign = expense.amount / exchangeRates[trip.value!.currency]
-    foreignAmountStr.value = foreign >= 1 ? foreign.toFixed(0) : foreign.toFixed(2)
-  }
-
-  // 自定义金额：直接显示人民币金额（因为存储的就是人民币）
+  // 自定义金额：直接用原始币种金额
   if (expense.splitMode === 'custom' && expense.splitAmounts) {
     Object.entries(expense.splitAmounts).forEach(([memberId, amount]) => {
       customAmounts[memberId] = amount.toFixed(2)
     })
-  }
-}
-
-// ===== 外币金额变化：换算为人民币 =====
-function onForeignAmountChange() {
-  const foreignAmount = parseFloat(foreignAmountStr.value) || 0
-  if (foreignAmount > 0 && exchangeRates) {
-    const cnyAmount = convertToCNY(foreignAmount, trip.value!.currency, exchangeRates)
-    amountStr.value = cnyAmount.toFixed(2)
-  } else {
-    amountStr.value = ''
-  }
-}
-
-// ===== 人民币金额变化：如果是外币旅行，反算外币金额 =====
-function onCNYAmountChange() {
-  const cnyAmount = parseFloat(amountStr.value) || 0
-  if (cnyAmount > 0 && isForeignCurrency.value && exchangeRates) {
-    const foreign = cnyAmount / exchangeRates[trip.value!.currency]
-    foreignAmountStr.value = foreign >= 1 ? foreign.toFixed(0) : foreign.toFixed(2)
-  } else if (!cnyAmount) {
-    foreignAmountStr.value = ''
   }
 }
 
@@ -524,7 +500,7 @@ async function save() {
     if (customTotal.value <= 0) { alert('请输入每个人的金额'); return }
   }
 
-  // splitAmounts 始终存储人民币金额
+  // splitAmounts 存储原始币种金额
   const splitAmounts: Record<string, number> = {}
   if (splitMode.value === 'custom') {
     splitAmong.value.forEach(id => {
@@ -532,10 +508,13 @@ async function save() {
     })
   }
 
+  const expenseCurrency = trip.value?.currency || 'CNY'
+
   if (!isEditing.value) {
     await store.addExpense(tripId, {
       payerId: payerId.value,
       amount: amountNum.value,
+      currency: expenseCurrency,
       splitAmong: [...splitAmong.value],
       splitMode: splitMode.value,
       splitAmounts,
@@ -549,6 +528,7 @@ async function save() {
     await store.updateExpense(tripId, editingExpenseId, {
       payerId: payerId.value,
       amount: amountNum.value,
+      currency: expenseCurrency,
       splitAmong: [...splitAmong.value],
       splitMode: splitMode.value,
       splitAmounts,

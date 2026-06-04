@@ -12,10 +12,11 @@ export interface TripExpense {
   id: string
   tripId: string
   payerId: string           // 付款人ID
-  amount: number            // 总金额
+  amount: number            // 原始币种金额（用户实际输入的金额）
+  currency: string          // 该笔账单的币种（旅行币种或CNY）
   splitAmong: string[]      // 参与分摊的成员ID列表
   splitMode: 'equal' | 'custom'  // 均摊 or 自定义金额
-  splitAmounts: Record<string, number>  // 自定义模式下每人实际消费 { memberId: amount }
+  splitAmounts: Record<string, number>  // 原始币种金额
   categoryId: string        // 分类ID
   payMethod: string         // 支付方式：alipay/wechat/credit_card/cash/transit_card/etc
   images: string[]          // 图片 base64 列表
@@ -49,7 +50,8 @@ export interface TripCategory {
 export interface Transfer {
   fromId: string
   toId: string
-  amount: number
+  amount: number      // 原始币种金额
+  cnyAmount: number   // 人民币等值金额（仅外币旅行时使用）
 }
 
 // 成员净余额
@@ -57,9 +59,9 @@ export interface MemberBalance {
   memberId: string
   name: string
   color: string
-  paid: number       // 总共垫付了多少
-  share: number      // 总共应该分摊多少
-  balance: number    // 净余额 (paid - share)，正数表示别人欠他
+  paid: number       // 原始币种
+  share: number      // 原始币种
+  balance: number    // 原始币种
 }
 
 // 成员消费结构

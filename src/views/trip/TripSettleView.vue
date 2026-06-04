@@ -8,7 +8,8 @@
 
     <!-- 概览 -->
     <div class="summary-card">
-      <div class="summary-total">总消费 ¥{{ formatMoney(total) }}</div>
+      <div class="summary-total">{{ currencySymbol }}{{ formatMoney(total) }}</div>
+      <div v-if="isForeignCurrency && totalCny > 0" class="summary-sub">≈ ¥{{ formatMoney(totalCny) }} CNY</div>
       <div class="summary-sub">最优转账方案，共 {{ transfers.length }} 笔</div>
     </div>
 
@@ -22,11 +23,11 @@
         </div>
         <div class="balance-right">
           <div class="balance-detail">
-            <span class="paid">付 ¥{{ formatMoney(b.paid) }}</span>
-            <span class="share">摊 ¥{{ formatMoney(b.share) }}</span>
+            <span class="paid">付 {{ currencySymbol }}{{ formatMoney(b.paid) }}</span>
+            <span class="share">摊 {{ currencySymbol }}{{ formatMoney(b.share) }}</span>
           </div>
           <div class="balance-net" :class="{ positive: b.balance > 0, negative: b.balance < 0 }">
-            {{ b.balance > 0 ? '+' : '' }}¥{{ formatMoney(b.balance) }}
+            {{ b.balance > 0 ? '+' : '' }}{{ currencySymbol }}{{ formatMoney(b.balance) }}
           </div>
         </div>
       </div>
@@ -54,7 +55,8 @@
           <span class="tp-name">{{ getName(t.fromId) }}</span>
         </div>
         <div class="transfer-arrow">
-          <span class="arrow-amount">¥{{ formatMoney(t.amount) }}</span>
+          <span class="arrow-amount">{{ currencySymbol }}{{ formatMoney(t.amount) }}</span>
+          <span v-if="isForeignCurrency && t.cnyAmount > 0" class="arrow-cny">≈ ¥{{ formatMoney(t.cnyAmount) }}</span>
           <span class="arrow-icon">→</span>
         </div>
         <div class="transfer-person to">
@@ -69,19 +71,44 @@
 </template>
 
 <script setup lang="ts">
-import { computed } from 'vue'
+import { computed, onMounted, ref } from 'vue'
 import { useRoute } from 'vue-router'
 import { useTripStore } from '../../stores/trip'
 import { formatMoney } from '../../utils/trip-storage'
+import { convertToCNY } from '../../utils/exchange-rate'
+import { getCurrencyInfo } from '../../types/currencies'
 
 const route = useRoute()
 const store = useTripStore()
 const tripId = route.params.id as string
 
 const trip = computed(() => store.getTripById(tripId))
+const currencyInfo = computed(() => getCurrencyInfo(trip.value?.currency || 'CNY'))
+const isForeignCurrency = computed(() => trip.value?.currency !== 'CNY')
+const currencySymbol = computed(() => isForeignCurrency.value ? currencyInfo.value.symbol : '¥')
 const total = computed(() => trip.value ? store.getTripTotal(trip.value) : 0)
 const balances = computed(() => trip.value ? store.getMemberBalances(trip.value) : [])
 const transfers = computed(() => trip.value ? store.getTransfers(trip.value) : [])
+
+// 外币旅行时总消费的人民币等值
+const totalCny = ref(0)
+
+onMounted(async () => {
+  if (isForeignCurrency.value) {
+    await store.loadExchangeRates()
+    // 重新计算 transfers（会使用缓存的汇率）
+    if (trip.value) {
+      const freshTransfers = store.getTransfers(trip.value)
+      // transfers 是 computed，会自动更新
+    }
+    // 计算总消费的人民币等值
+    if (trip.value && trip.value.currency !== 'CNY') {
+      const { fetchRates } = await import('../../utils/exchange-rate')
+      const data = await fetchRates()
+      totalCny.value = convertToCNY(total.value, trip.value.currency, data.rates)
+    }
+  }
+})
 
 function getName(id: string) {
   return trip.value ? store.getMemberName(trip.value, id) : '?'
@@ -96,9 +123,16 @@ function copySettlement() {
   const lines = transfers.value.map((t, i) => {
     const from = getName(t.fromId)
     const to = getName(t.toId)
-    return `${i + 1}. ${from} → ${to}：¥${formatMoney(t.amount)}`
+    if (isForeignCurrency.value && t.cnyAmount > 0) {
+      return `${i + 1}. ${from} → ${to}：${currencySymbol.value}${formatMoney(t.amount)}（≈ ¥${formatMoney(t.cnyAmount)}）`
+    }
+    return `${i + 1}. ${from} → ${to}：${currencySymbol.value}${formatMoney(t.amount)}`
   })
-  const text = `【${trip.value.name} 结算方案】\n总消费：¥${formatMoney(total.value)}\n\n${lines.join('\n')}`
+  let header = `【${trip.value.name} 结算方案】\n总消费：${currencySymbol.value}${formatMoney(total.value)}`
+  if (isForeignCurrency.value && totalCny.value > 0) {
+    header += `（≈ ¥${formatMoney(totalCny.value)}）`
+  }
+  const text = `${header}\n\n${lines.join('\n')}`
   navigator.clipboard.writeText(text).then(() => {
     alert('已复制到剪贴板！可以直接发给群聊')
   }).catch(() => {
@@ -310,6 +344,11 @@ function copySettlement() {
   font-size: 16px;
   font-weight: 700;
   color: var(--primary);
+}
+
+.arrow-cny {
+  font-size: 12px;
+  color: var(--text-secondary);
 }
 
 .arrow-icon {

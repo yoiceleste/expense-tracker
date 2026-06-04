@@ -24,7 +24,8 @@
     <!-- 当前成员概览 -->
     <div v-if="currentMember" class="overview-card" :style="{ borderTop: `3px solid ${currentMember.color}` }">
       <div class="overview-name">{{ currentMember.name }} 的消费</div>
-      <div class="overview-total">¥{{ formatMoney(currentMember.total) }}</div>
+      <div class="overview-total">{{ currencySymbol }}{{ formatMoney(currentMember.total) }}</div>
+      <div v-if="isForeignCurrency && currentMemberCny > 0" class="overview-cny">≈ ¥{{ formatMoney(currentMemberCny) }} CNY</div>
     </div>
 
     <!-- 分类明细 -->
@@ -50,7 +51,7 @@
               ></div>
             </div>
           </div>
-          <span class="cat-amount">¥{{ formatMoney(cat.amount) }}</span>
+          <span class="cat-amount">{{ currencySymbol }}{{ formatMoney(cat.amount) }}</span>
           <span class="cat-percent">
             {{ (cat.amount / currentMember.total * 100).toFixed(0) }}%
           </span>
@@ -82,7 +83,7 @@
               ></div>
             </div>
           </div>
-          <span class="compare-amount">¥{{ formatMoney(m.total) }}</span>
+          <span class="compare-amount">{{ currencySymbol }}{{ formatMoney(m.total) }}</span>
         </div>
       </div>
     </div>
@@ -110,10 +111,12 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 import { useRoute } from 'vue-router'
 import { useTripStore } from '../../stores/trip'
 import { formatMoney } from '../../utils/trip-storage'
+import { convertToCNY, fetchRates } from '../../utils/exchange-rate'
+import { getCurrencyInfo } from '../../types/currencies'
 import type { MemberSpending, TripCategory } from '../../types/trip'
 
 const route = useRoute()
@@ -121,6 +124,9 @@ const store = useTripStore()
 const tripId = route.params.id as string
 
 const trip = computed(() => store.getTripById(tripId))
+const currencyInfo = computed(() => getCurrencyInfo(trip.value?.currency || 'CNY'))
+const isForeignCurrency = computed(() => trip.value?.currency !== 'CNY')
+const currencySymbol = computed(() => isForeignCurrency.value ? currencyInfo.value.symbol : '¥')
 const memberSpendings = computed(() => trip.value ? store.getMemberSpending(trip.value) : [])
 const allCategories = computed(() => store.categories)
 
@@ -139,9 +145,24 @@ const currentMember = computed(() =>
   memberSpendings.value.find(m => m.memberId === selectedMember.value)
 )
 
+// 当前成员消费的人民币等值
+const currentMemberCny = computed(() => {
+  if (!isForeignCurrency.value || !currentMember.value || !exchangeRates) return 0
+  return convertToCNY(currentMember.value.total, trip.value!.currency, exchangeRates)
+})
+
+let exchangeRates: Record<string, number> | null = null
+
+onMounted(async () => {
+  if (isForeignCurrency.value) {
+    const data = await fetchRates()
+    exchangeRates = data.rates
+  }
+})
+
 function getCatAmount(member: MemberSpending, catId: string): string {
   const cat = member.categories.find(c => c.categoryId === catId)
-  return cat ? '¥' + formatMoney(cat.amount) : '-'
+  return cat ? currencySymbol.value + formatMoney(cat.amount) : '-'
 }
 </script>
 
@@ -229,6 +250,12 @@ function getCatAmount(member: MemberSpending, catId: string): string {
 .overview-total {
   font-size: 32px;
   font-weight: 700;
+}
+
+.overview-cny {
+  font-size: 13px;
+  color: var(--text-secondary);
+  margin-top: 4px;
 }
 
 /* 分类列表 */
