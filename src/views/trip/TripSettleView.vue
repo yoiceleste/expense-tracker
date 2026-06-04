@@ -49,6 +49,15 @@
         人民币部分：¥{{ formatMoney(t.amountsByCurrency.CNY) }} CNY
       </div>
 
+      <div v-if="hasOffset(t)" class="offset-box">
+        <div class="offset-title">已自动抵消：</div>
+        <div>{{ getName(t.offsetFromMemberId!) }} 欠 {{ getName(t.offsetToMemberId!) }}</div>
+        <div v-for="currency in offsetCurrencies(t)" :key="`offset-${currency}`">
+          {{ currency === 'CNY' ? '人民币部分' : `${currencyLabel(currency)}部分` }}：{{ formatAmount(t.offsetAmountsByCurrency![currency], currency) }}
+        </div>
+        <div>抵消金额：≈ ¥{{ formatMoney(t.offsetCnyAmount || 0) }} CNY</div>
+      </div>
+
       <div class="transfer-advice">
         最终建议：{{ getName(t.fromMemberId) }} 转给 {{ getName(t.toMemberId) }} ¥{{ formatMoney(t.totalCnyAmount) }}
       </div>
@@ -71,9 +80,14 @@ const tripId = route.params.id as string
 const trip = computed(() => store.getTripById(tripId))
 const transfers = computed(() => trip.value ? store.getTransfers(trip.value) : [])
 const settlementRateText = computed(() => {
-  const currencies = Array.from(new Set(transfers.value.flatMap(transferForeignCurrencies)))
-  if (currencies.length === 0) return '本次结算汇率：人民币账单无需换算'
-  return `本次结算汇率：${currencies.map(rateLine).filter(Boolean).join(' / ')}`
+  const currencies = new Set<string>()
+  transfers.value.forEach(transfer => {
+    transferForeignCurrencies(transfer).forEach(currency => currencies.add(currency))
+    offsetCurrencies(transfer).filter(currency => currency !== 'CNY').forEach(currency => currencies.add(currency))
+  })
+  const rateLines = Array.from(currencies).map(rateLine).filter(Boolean)
+  if (rateLines.length === 0) return '本次结算汇率：人民币账单无需换算'
+  return `本次结算汇率：${rateLines.join(' / ')}`
 })
 
 onMounted(async () => {
@@ -90,6 +104,18 @@ function transferCurrencies(transfer: Transfer): string[] {
 
 function transferForeignCurrencies(transfer: Transfer): string[] {
   return transferCurrencies(transfer).filter(currency => currency !== 'CNY')
+}
+
+function hasOffset(transfer: Transfer): boolean {
+  return !!transfer.offsetAmountsByCurrency && (transfer.offsetCnyAmount || 0) > 0.01
+}
+
+function offsetCurrencies(transfer: Transfer): string[] {
+  return Object.keys(transfer.offsetAmountsByCurrency || {}).sort((a, b) => {
+    if (a === 'CNY') return 1
+    if (b === 'CNY') return -1
+    return a.localeCompare(b)
+  })
 }
 
 function formatAmount(amount: number, currency: string): string {
@@ -138,7 +164,16 @@ function copySettlement() {
       ].filter(Boolean)
     })
     const cnyLine = transferForeignCurrencies(transfer).length > 0 && transfer.amountsByCurrency.CNY ? [`人民币部分：¥${formatMoney(transfer.amountsByCurrency.CNY)} CNY`] : []
-    return `${i + 1}. ${from} 欠 ${to}\n${[...amountLines, ...foreignLines, ...cnyLine, `最终建议：${from} 转给 ${to} ¥${formatMoney(transfer.totalCnyAmount)}`].join('\n')}`
+    const offsetLines = hasOffset(transfer) ? [
+      '已自动抵消：',
+      `${getName(transfer.offsetFromMemberId!)} 欠 ${getName(transfer.offsetToMemberId!)}`,
+      ...offsetCurrencies(transfer).map(currency => {
+        const label = currency === 'CNY' ? '人民币部分' : `${currencyLabel(currency)}部分`
+        return `${label}：${formatAmount(transfer.offsetAmountsByCurrency![currency], currency)}`
+      }),
+      `抵消金额：≈ ¥${formatMoney(transfer.offsetCnyAmount || 0)} CNY`,
+    ] : []
+    return `${i + 1}. ${from} 欠 ${to}\n${[...amountLines, ...foreignLines, ...cnyLine, ...offsetLines, `最终建议：${from} 转给 ${to} ¥${formatMoney(transfer.totalCnyAmount)}`].join('\n')}`
   })
   const header = `【${trip.value.name} 结算方案】\n${settlementRateText.value}\n最终转账按人民币结算`
   const text = `${header}\n\n${lines.join('\n\n')}`
@@ -272,6 +307,21 @@ function copySettlement() {
 .transfer-cny-line {
   font-size: 13px;
   color: var(--text-secondary);
+}
+
+.offset-box {
+  margin-top: 4px;
+  padding: 8px 10px;
+  border-radius: 10px;
+  background: #f6f7fb;
+  font-size: 13px;
+  color: var(--text-secondary);
+  line-height: 1.6;
+}
+
+.offset-title {
+  font-weight: 600;
+  color: var(--text);
 }
 
 .transfer-advice {

@@ -276,7 +276,7 @@ function getPaymentAction(expense: any): string {
 function getParticipantsText(expense: any): string {
   const names = expense.splitAmong.map((id: string) => store.getMemberName(trip.value!, id))
   if (names.length === 0) return '未选择分摊人'
-  if (names.length === 1) return `${names[0]} 单人承担`
+  if (names.length === 1) return `${names[0]} 承担`
   if (expense.splitMode === 'equal') return `${names.join('、')} 均摊`
   return `${names.join('、')} 按自定义金额分摊`
 }

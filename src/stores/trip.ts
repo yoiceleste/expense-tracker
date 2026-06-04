@@ -379,9 +379,11 @@ export const useTripStore = defineStore('trip', () => {
         toMemberId,
         amountsByCurrency: {},
         totalCnyAmount: 0,
+        grossCnyAmount: 0,
       }
       existing.amountsByCurrency[currency] = roundMoney((existing.amountsByCurrency[currency] || 0) + roundedAmount)
-      existing.totalCnyAmount = roundMoney(existing.totalCnyAmount + toCnyAmount(roundedAmount, currency))
+      existing.grossCnyAmount = roundMoney(existing.grossCnyAmount + toCnyAmount(roundedAmount, currency))
+      existing.totalCnyAmount = existing.grossCnyAmount
       transfersByPair.set(key, existing)
     }
 
@@ -435,9 +437,38 @@ export const useTripStore = defineStore('trip', () => {
       }
     })
 
-    return Array.from(transfersByPair.values())
-      .filter(transfer => transfer.totalCnyAmount > 0.01)
-      .sort((a, b) => b.totalCnyAmount - a.totalCnyAmount)
+    const directedTransfers = Array.from(transfersByPair.values())
+    const netTransfers: Transfer[] = []
+    const handledPairs = new Set<string>()
+
+    directedTransfers.forEach(transfer => {
+      const pairKey = [transfer.fromMemberId, transfer.toMemberId].sort().join('<->')
+      if (handledPairs.has(pairKey)) return
+      handledPairs.add(pairKey)
+
+      const reverse = transfersByPair.get(`${transfer.toMemberId}->${transfer.fromMemberId}`)
+      if (!reverse) {
+        if (transfer.grossCnyAmount > 0.01) netTransfers.push({ ...transfer, totalCnyAmount: roundMoney(transfer.grossCnyAmount) })
+        return
+      }
+
+      const [winner, offset] = transfer.grossCnyAmount >= reverse.grossCnyAmount
+        ? [transfer, reverse]
+        : [reverse, transfer]
+      const netCnyAmount = roundMoney(winner.grossCnyAmount - offset.grossCnyAmount)
+      if (netCnyAmount <= 0.01) return
+
+      netTransfers.push({
+        ...winner,
+        totalCnyAmount: netCnyAmount,
+        offsetFromMemberId: offset.fromMemberId,
+        offsetToMemberId: offset.toMemberId,
+        offsetAmountsByCurrency: offset.amountsByCurrency,
+        offsetCnyAmount: roundMoney(offset.grossCnyAmount),
+      })
+    })
+
+    return netTransfers.sort((a, b) => b.totalCnyAmount - a.totalCnyAmount)
   }
 
   function getMemberSpending(trip: Trip): MemberSpending[] {

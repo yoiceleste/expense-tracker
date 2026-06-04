@@ -50,8 +50,13 @@ export interface TripCategory {
 export interface Transfer {
   fromMemberId: string
   toMemberId: string
-  amountsByCurrency: Record<string, number>  // 按原始交易币种分别结算的欠款金额
-  totalCnyAmount: number                      // 所有币种折算后的人民币最终建议金额
+  amountsByCurrency: Record<string, number>        // 最终付款方向上的原始币种债务明细
+  totalCnyAmount: number                            // 双向债务抵消后的人民币最终建议金额
+  grossCnyAmount: number                            // 最终付款方向抵消前的人民币合计
+  offsetFromMemberId?: string                       // 被抵消的反向债务付款人
+  offsetToMemberId?: string                         // 被抵消的反向债务收款人
+  offsetAmountsByCurrency?: Record<string, number>  // 被抵消的反向原始币种债务明细
+  offsetCnyAmount?: number                          // 被抵消的反向人民币合计
 }
 
 // 成员净余额
