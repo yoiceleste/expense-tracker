@@ -123,7 +123,7 @@
       </div>
 
       <!-- 均摊提示 -->
-      <div v-if="splitMode === 'equal' && splitAmong.length > 0 && amountNum > 0" class="split-hint">
+      <div v-if="splitMode === 'equal' && splitAmong.length > 1 && amountNum > 0" class="split-hint">
         每人 {{ currencySymbol }}{{ formatMoney(amountNum / splitAmong.length) }}
       </div>
 

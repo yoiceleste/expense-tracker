@@ -48,11 +48,10 @@ export interface TripCategory {
 
 // 结算转账
 export interface Transfer {
-  fromId: string
-  toId: string
-  amount: number      // 结算显示币种金额（默认使用旅行币种）
-  currency: string    // 结算显示币种
-  cnyAmount: number   // 人民币结算层金额
+  fromMemberId: string
+  toMemberId: string
+  amountsByCurrency: Record<string, number>  // 按原始交易币种分别结算的欠款金额
+  totalCnyAmount: number                      // 所有币种折算后的人民币最终建议金额
 }
 
 // 成员净余额

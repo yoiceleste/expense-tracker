@@ -7,7 +7,7 @@
     </div>
 
     <div class="settle-rate-card">
-      <div>{{ settlementRateLine || '本次结算汇率：人民币账单无需换算' }}</div>
+      <div>{{ settlementRateText }}</div>
       <div>最终转账按人民币结算</div>
     </div>
 
@@ -25,18 +25,32 @@
 
     <div v-for="(t, i) in transfers" :key="i" class="transfer-card readable-transfer">
       <div class="debt-title">
-        <span class="tp-avatar small" :style="{ background: getColor(t.fromId) }">{{ getName(t.fromId)[0] }}</span>
-        <strong>{{ getName(t.fromId) }} 欠 {{ getName(t.toId) }}</strong>
+        <span class="tp-avatar small" :style="{ background: getColor(t.fromMemberId) }">{{ getName(t.fromMemberId)[0] }}</span>
+        <strong>{{ getName(t.fromMemberId) }} 欠 {{ getName(t.toMemberId) }}</strong>
       </div>
-      <div v-if="t.currency !== 'CNY'">
-        <div class="transfer-line-text">{{ currencyLabel(t.currency) }}：{{ formatAmount(t.amount, t.currency) }}</div>
-        <div class="transfer-line-text">人民币：≈ ¥{{ formatMoney(t.cnyAmount) }} CNY</div>
-        <div v-if="rateLine(t.currency)" class="transfer-rate">汇率：{{ rateLine(t.currency) }}</div>
-        <div class="transfer-advice">最终建议：{{ getName(t.fromId) }} 转给 {{ getName(t.toId) }} ¥{{ formatMoney(t.cnyAmount) }}</div>
+
+      <div v-for="currency in transferCurrencies(t)" :key="currency" class="currency-debt">
+        <div v-if="currency !== 'CNY'" class="transfer-line-text">
+          {{ currencyLabel(currency) }}部分：{{ formatAmount(t.amountsByCurrency[currency], currency) }}
+        </div>
+        <div v-else class="transfer-line-text">
+          人民币部分：{{ formatAmount(t.amountsByCurrency[currency], currency) }}
+        </div>
       </div>
-      <div v-else>
-        <div class="transfer-line-text">人民币：{{ formatAmount(t.amount, t.currency) }}</div>
-        <div class="transfer-advice">最终建议：{{ getName(t.fromId) }} 转给 {{ getName(t.toId) }} ¥{{ formatMoney(t.amount) }}</div>
+
+      <template v-for="currency in transferForeignCurrencies(t)" :key="`cny-${currency}`">
+        <div v-if="rateLine(currency)" class="transfer-rate">汇率：{{ rateLine(currency) }}</div>
+        <div class="transfer-cny-line">
+          {{ currencyLabel(currency) }}折人民币：≈ ¥{{ formatMoney(convertCurrencyToCny(t.amountsByCurrency[currency], currency)) }} CNY
+        </div>
+      </template>
+
+      <div v-if="transferForeignCurrencies(t).length > 0 && t.amountsByCurrency.CNY" class="transfer-cny-line">
+        人民币部分：¥{{ formatMoney(t.amountsByCurrency.CNY) }} CNY
+      </div>
+
+      <div class="transfer-advice">
+        最终建议：{{ getName(t.fromMemberId) }} 转给 {{ getName(t.toMemberId) }} ¥{{ formatMoney(t.totalCnyAmount) }}
       </div>
     </div>
   </div>
@@ -48,6 +62,7 @@ import { useRoute } from 'vue-router'
 import { useTripStore } from '../../stores/trip'
 import { formatMoney } from '../../utils/trip-storage'
 import { getCurrencyInfo } from '../../types/currencies'
+import type { Transfer } from '../../types/trip'
 
 const route = useRoute()
 const store = useTripStore()
@@ -55,17 +70,36 @@ const tripId = route.params.id as string
 
 const trip = computed(() => store.getTripById(tripId))
 const transfers = computed(() => trip.value ? store.getTransfers(trip.value) : [])
-const settlementRateLine = computed(() => {
-  const currency = trip.value?.currency || 'CNY'
-  return currency === 'CNY' ? '' : `本次结算汇率：${rateLine(currency)}`
+const settlementRateText = computed(() => {
+  const currencies = Array.from(new Set(transfers.value.flatMap(transferForeignCurrencies)))
+  if (currencies.length === 0) return '本次结算汇率：人民币账单无需换算'
+  return `本次结算汇率：${currencies.map(rateLine).filter(Boolean).join(' / ')}`
 })
 
 onMounted(async () => {
   await store.loadExchangeRates()
 })
 
+function transferCurrencies(transfer: Transfer): string[] {
+  return Object.keys(transfer.amountsByCurrency).sort((a, b) => {
+    if (a === 'CNY') return 1
+    if (b === 'CNY') return -1
+    return a.localeCompare(b)
+  })
+}
+
+function transferForeignCurrencies(transfer: Transfer): string[] {
+  return transferCurrencies(transfer).filter(currency => currency !== 'CNY')
+}
+
 function formatAmount(amount: number, currency: string): string {
   return `${getCurrencyInfo(currency).symbol}${formatMoney(amount)} ${currency}`
+}
+
+function convertCurrencyToCny(amount: number, currency: string): number {
+  if (currency === 'CNY') return amount
+  const cnyRate = store.getCnyRate(currency)
+  return cnyRate ? amount * cnyRate : amount
 }
 
 function rateLine(currency: string): string {
@@ -89,16 +123,24 @@ function getColor(id: string) {
 
 function copySettlement() {
   if (!trip.value || transfers.value.length === 0) return
-  const lines = transfers.value.map((t, i) => {
-    const from = getName(t.fromId)
-    const to = getName(t.toId)
-    if (t.currency !== 'CNY') {
-      const rate = rateLine(t.currency)
-      return `${i + 1}. ${from} 欠 ${to}\n${currencyLabel(t.currency)}：${formatAmount(t.amount, t.currency)}\n人民币：≈ ¥${formatMoney(t.cnyAmount)} CNY${rate ? `\n汇率：${rate}` : ''}\n最终建议：${from} 转给 ${to} ¥${formatMoney(t.cnyAmount)}`
-    }
-    return `${i + 1}. ${from} 欠 ${to}\n人民币：${formatAmount(t.amount, t.currency)}\n最终建议：${from} 转给 ${to} ¥${formatMoney(t.amount)}`
+  const lines = transfers.value.map((transfer, i) => {
+    const from = getName(transfer.fromMemberId)
+    const to = getName(transfer.toMemberId)
+    const amountLines = transferCurrencies(transfer).map(currency => {
+      const label = currency === 'CNY' ? '人民币部分' : `${currencyLabel(currency)}部分`
+      return `${label}：${formatAmount(transfer.amountsByCurrency[currency], currency)}`
+    })
+    const foreignLines = transferForeignCurrencies(transfer).flatMap(currency => {
+      const rate = rateLine(currency)
+      return [
+        rate ? `汇率：${rate}` : '',
+        `${currencyLabel(currency)}折人民币：≈ ¥${formatMoney(convertCurrencyToCny(transfer.amountsByCurrency[currency], currency))} CNY`,
+      ].filter(Boolean)
+    })
+    const cnyLine = transferForeignCurrencies(transfer).length > 0 && transfer.amountsByCurrency.CNY ? [`人民币部分：¥${formatMoney(transfer.amountsByCurrency.CNY)} CNY`] : []
+    return `${i + 1}. ${from} 欠 ${to}\n${[...amountLines, ...foreignLines, ...cnyLine, `最终建议：${from} 转给 ${to} ¥${formatMoney(transfer.totalCnyAmount)}`].join('\n')}`
   })
-  const header = `【${trip.value.name} 结算方案】\n${settlementRateLine.value || '本次结算汇率：人民币账单无需换算'}\n最终转账按人民币结算`
+  const header = `【${trip.value.name} 结算方案】\n${settlementRateText.value}\n最终转账按人民币结算`
   const text = `${header}\n\n${lines.join('\n\n')}`
   navigator.clipboard.writeText(text).then(() => {
     alert('已复制到剪贴板！可以直接发给群聊')
@@ -226,7 +268,8 @@ function copySettlement() {
   margin-bottom: 6px;
 }
 
-.transfer-rate {
+.transfer-rate,
+.transfer-cny-line {
   font-size: 13px;
   color: var(--text-secondary);
 }

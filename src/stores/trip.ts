@@ -366,31 +366,78 @@ export const useTripStore = defineStore('trip', () => {
   }
 
   function getTransfers(trip: Trip): Transfer[] {
-    const balances = getMemberBalances(trip)
-    const transfers: Transfer[] = []
-    const settlementCurrency = trip.currency || 'CNY'
+    ratesVersion.value
+    const transfersByPair = new Map<string, Transfer>()
+    const currencies = Array.from(new Set(trip.expenses.map(expense => getExpenseCurrency(expense, trip))))
 
-    const creditors = balances.filter(b => b.balanceCny > 0.01).map(b => ({ ...b })).sort((a, b) => b.balanceCny - a.balanceCny)
-    const debtors = balances.filter(b => b.balanceCny < -0.01).map(b => ({ ...b, balanceCny: Math.abs(b.balanceCny) })).sort((a, b) => b.balanceCny - a.balanceCny)
-
-    let i = 0, j = 0
-    while (i < creditors.length && j < debtors.length) {
-      const cnyAmount = Math.min(creditors[i].balanceCny, debtors[j].balanceCny)
-      if (cnyAmount > 0.01) {
-        transfers.push({
-          fromId: debtors[j].memberId,
-          toId: creditors[i].memberId,
-          amount: roundMoney(fromCnyAmount(cnyAmount, settlementCurrency)),
-          currency: settlementCurrency,
-          cnyAmount: roundMoney(cnyAmount),
-        })
+    function addTransfer(fromMemberId: string, toMemberId: string, currency: string, amount: number) {
+      const roundedAmount = roundMoney(amount)
+      if (roundedAmount <= 0.01) return
+      const key = `${fromMemberId}->${toMemberId}`
+      const existing = transfersByPair.get(key) || {
+        fromMemberId,
+        toMemberId,
+        amountsByCurrency: {},
+        totalCnyAmount: 0,
       }
-      creditors[i].balanceCny -= cnyAmount
-      debtors[j].balanceCny -= cnyAmount
-      if (creditors[i].balanceCny < 0.01) i++
-      if (debtors[j].balanceCny < 0.01) j++
+      existing.amountsByCurrency[currency] = roundMoney((existing.amountsByCurrency[currency] || 0) + roundedAmount)
+      existing.totalCnyAmount = roundMoney(existing.totalCnyAmount + toCnyAmount(roundedAmount, currency))
+      transfersByPair.set(key, existing)
     }
-    return transfers
+
+    currencies.forEach(currency => {
+      const balances = trip.members.map(member => ({ memberId: member.id, balance: 0 }))
+
+      trip.expenses
+        .filter(expense => getExpenseCurrency(expense, trip) === currency)
+        .forEach(expense => {
+          const payer = balances.find(balance => balance.memberId === expense.payerId)
+          if (payer) payer.balance += expense.amount
+
+          const selectedParticipants = expense.splitAmong.filter(memberId =>
+            balances.some(balance => balance.memberId === memberId)
+          )
+
+          if (expense.splitMode === 'custom' && expense.splitAmounts) {
+            selectedParticipants.forEach(memberId => {
+              const member = balances.find(balance => balance.memberId === memberId)
+              if (member) member.balance -= expense.splitAmounts[memberId] || 0
+            })
+          } else {
+            const splitCount = selectedParticipants.length
+            if (splitCount > 0) {
+              const perPerson = expense.amount / splitCount
+              selectedParticipants.forEach(memberId => {
+                const member = balances.find(balance => balance.memberId === memberId)
+                if (member) member.balance -= perPerson
+              })
+            }
+          }
+        })
+
+      const creditors = balances
+        .filter(balance => balance.balance > 0.01)
+        .map(balance => ({ ...balance }))
+        .sort((a, b) => b.balance - a.balance)
+      const debtors = balances
+        .filter(balance => balance.balance < -0.01)
+        .map(balance => ({ memberId: balance.memberId, balance: Math.abs(balance.balance) }))
+        .sort((a, b) => b.balance - a.balance)
+
+      let i = 0, j = 0
+      while (i < creditors.length && j < debtors.length) {
+        const amount = Math.min(creditors[i].balance, debtors[j].balance)
+        addTransfer(debtors[j].memberId, creditors[i].memberId, currency, amount)
+        creditors[i].balance -= amount
+        debtors[j].balance -= amount
+        if (creditors[i].balance < 0.01) i++
+        if (debtors[j].balance < 0.01) j++
+      }
+    })
+
+    return Array.from(transfersByPair.values())
+      .filter(transfer => transfer.totalCnyAmount > 0.01)
+      .sort((a, b) => b.totalCnyAmount - a.totalCnyAmount)
   }
 
   function getMemberSpending(trip: Trip): MemberSpending[] {
