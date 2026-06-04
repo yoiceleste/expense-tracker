@@ -351,9 +351,9 @@ const customTotal = computed(() => {
   return splitAmong.value.reduce((s, id) => s + (parseFloat(customAmounts[id]) || 0), 0)
 })
 
-// 自定义模式下，合计应该和什么对比：外币旅行对比外币总额，人民币对比人民币总额
+// 自定义模式下，合计应该和什么对比：用户输入了外币则对比外币总额，否则对比人民币总额
 const customCompareTotal = computed(() => {
-  if (isForeignCurrency.value && foreignAmountStr.value) {
+  if (showForeignSymbol.value && foreignAmountStr.value) {
     return parseFloat(foreignAmountStr.value) || 0
   }
   return amountNum.value
@@ -361,7 +361,7 @@ const customCompareTotal = computed(() => {
 
 // 自定义合计换算为人民币
 const customTotalCNY = computed(() => {
-  if (isForeignCurrency.value && exchangeRates) {
+  if (showForeignSymbol.value && exchangeRates) {
     return convertToCNY(customTotal.value, trip.value!.currency, exchangeRates)
   }
   return customTotal.value
@@ -480,8 +480,8 @@ function onForeignAmountChange() {
   }
 }
 
-// 初始化默认选中
-if (trip.value) {
+// 初始化默认选中（仅新增模式）
+if (trip.value && !isEditing.value) {
   payerId.value = trip.value.members[0]?.id || ''
   splitAmong.value = trip.value.members.map(m => m.id)
 }
@@ -531,8 +531,8 @@ async function save() {
   if (splitMode.value === 'custom') {
     splitAmong.value.forEach(id => {
       const raw = parseFloat(customAmounts[id]) || 0
-      // 外币旅行时，将外币金额换算为人民币
-      if (isForeignCurrency.value && exchangeRates) {
+      // 用户输入了外币金额时才换算为人民币
+      if (showForeignSymbol.value && exchangeRates) {
         splitAmounts[id] = convertToCNY(raw, trip.value!.currency, exchangeRates)
       } else {
         splitAmounts[id] = raw
