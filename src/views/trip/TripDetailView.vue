@@ -125,10 +125,13 @@
             <div class="expense-amount">¥{{ formatMoney(expense.amount) }}</div>
             <div class="expense-per">
               <template v-if="expense.splitMode === 'custom' && expense.splitAmounts">
-                {{ formatMoney(Object.values(expense.splitAmounts).reduce((s, a) => s + a, 0)) }}/人
+                {{ Object.keys(expense.splitAmounts).length }}人分摊
+              </template>
+              <template v-else-if="expense.splitAmong.length === 1">
+                {{ store.getMemberName(trip!, expense.splitAmong[0]) }} 承担
               </template>
               <template v-else>
-                ¥{{ formatMoney(expense.amount / expense.splitAmong.length) }}/人
+                {{ expense.splitAmong.length }}人均摊 · ¥{{ formatMoney(expense.amount / expense.splitAmong.length) }}/人
               </template>
             </div>
             <button class="expense-edit" @click.stop="$router.push(`/trip/${tripId}/add?expenseId=${expense.id}`)">✏️</button>
