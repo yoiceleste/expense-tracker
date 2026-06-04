@@ -48,10 +48,15 @@ export interface TripCategory {
 
 // 结算转账
 export interface Transfer {
-  fromId: string
-  toId: string
-  amount: number      // 原始币种金额
-  cnyAmount: number   // 人民币等值金额（仅外币旅行时使用）
+  fromMemberId: string
+  toMemberId: string
+  amountsByCurrency: Record<string, number>        // 最终付款方向上的原始币种债务明细
+  totalCnyAmount: number                            // 双向债务抵消后的人民币最终建议金额
+  grossCnyAmount: number                            // 最终付款方向抵消前的人民币合计
+  offsetFromMemberId?: string                       // 被抵消的反向债务付款人
+  offsetToMemberId?: string                         // 被抵消的反向债务收款人
+  offsetAmountsByCurrency?: Record<string, number>  // 被抵消的反向原始币种债务明细
+  offsetCnyAmount?: number                          // 被抵消的反向人民币合计
 }
 
 // 成员净余额
@@ -59,9 +64,12 @@ export interface MemberBalance {
   memberId: string
   name: string
   color: string
-  paid: number       // 原始币种
-  share: number      // 原始币种
-  balance: number    // 原始币种
+  paid: number       // 结算显示币种
+  share: number      // 结算显示币种
+  balance: number    // 结算显示币种
+  paidCny: number    // 人民币结算层
+  shareCny: number   // 人民币结算层
+  balanceCny: number // 人民币结算层
 }
 
 // 成员消费结构

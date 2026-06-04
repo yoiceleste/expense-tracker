@@ -80,7 +80,7 @@
           </div>
           <div class="record-right">
             <span class="record-amount" :class="record.type">
-              {{ record.type === 'income' ? '+' : '-' }}¥{{ formatMoney(record.amount) }}
+              {{ record.type === 'income' ? '+' : '-' }}{{ formatRecordAmount(record) }}
             </span>
           </div>
         </div>
@@ -110,6 +110,7 @@ import { ref, computed } from 'vue'
 import { useRouter } from 'vue-router'
 import { useExpenseStore } from '../stores/expense'
 import { formatMoney, getCurrentMonth } from '../utils/storage'
+import { getCurrencyInfo } from '../types/currencies'
 import type { Record, Category } from '../types'
 
 const router = useRouter()
@@ -150,6 +151,12 @@ function getCategoryIcon(id: string) {
 
 function getCategoryName(id: string) {
   return store.categories.find(c => c.id === id)?.name || '未知'
+}
+
+function formatRecordAmount(record: Record) {
+  const currency = record.currency || 'CNY'
+  const amount = currency === 'CNY' ? record.amount : (record.originalAmount ?? record.amount)
+  return `${getCurrencyInfo(currency).symbol}${formatMoney(amount)} ${currency}`
 }
 
 function viewRecord(record: Record) {
