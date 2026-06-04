@@ -17,6 +17,29 @@ export const useTripStore = defineStore('trip', () => {
   // Realtime 订阅管理
   const channels = ref<Record<string, RealtimeChannel>>({})
 
+  // 手动汇率覆盖：保存为 1 外币 = x CNY
+  const MANUAL_RATE_KEY = 'trip_manual_exchange_rates_cny'
+
+  function getManualRateOverrides(): Record<string, number> {
+    try {
+      return JSON.parse(localStorage.getItem(MANUAL_RATE_KEY) || '{}')
+    } catch {
+      return {}
+    }
+  }
+
+  function saveManualRateOverrides(rates: Record<string, number>) {
+    localStorage.setItem(MANUAL_RATE_KEY, JSON.stringify(rates))
+  }
+
+  function applyManualRateOverrides(rates: Record<string, number>): Record<string, number> {
+    const merged = { ...rates }
+    Object.entries(getManualRateOverrides()).forEach(([currency, cnyRate]) => {
+      if (currency !== 'CNY' && cnyRate > 0) merged[currency] = 1 / cnyRate
+    })
+    return merged
+  }
+
   // 初始化 - 只加载用户已加入的旅行
   async function init() {
     const joinedTripIds = storage.getAllJoinedTripIds()
@@ -292,12 +315,36 @@ export const useTripStore = defineStore('trip', () => {
     if (cachedRates.value) return cachedRates.value
     try {
       const data = await fetchRates()
-      cachedRates.value = data.rates
+      cachedRates.value = applyManualRateOverrides(data.rates)
       ratesVersion.value++
       return cachedRates.value
     } catch {
       return {}
     }
+  }
+
+  async function setManualExchangeRate(currency: string, cnyRate: number): Promise<void> {
+    if (currency === 'CNY' || cnyRate <= 0) return
+    const overrides = getManualRateOverrides()
+    overrides[currency] = cnyRate
+    saveManualRateOverrides(overrides)
+    if (!cachedRates.value) await loadExchangeRates()
+    cachedRates.value = applyManualRateOverrides(cachedRates.value || { CNY: 1 })
+    ratesVersion.value++
+  }
+
+  function getManualExchangeRate(currency: string): number | null {
+    const rate = getManualRateOverrides()[currency]
+    return rate && rate > 0 ? rate : null
+  }
+
+  function getCnyRate(currency: string): number | null {
+    if (currency === 'CNY') return 1
+    const manualRate = getManualExchangeRate(currency)
+    if (manualRate) return manualRate
+    ratesVersion.value
+    const rate = cachedRates.value?.[currency]
+    return rate ? 1 / rate : null
   }
 
   function getExpenseCurrency(expense: TripExpense, trip: Trip): string {
@@ -412,6 +459,6 @@ export const useTripStore = defineStore('trip', () => {
     addExpense, updateExpense, removeExpense,
     getMemberBalances, getTransfers, getMemberSpending,
     getMemberName, getMemberColor, getTripTotal, getTripTotalCny, getTripTotalsByCurrency, getExpenseCurrency,
-    loadExchangeRates,
+    loadExchangeRates, setManualExchangeRate, getManualExchangeRate, getCnyRate,
   }
 })

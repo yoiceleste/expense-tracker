@@ -90,7 +90,11 @@
             </option>
           </select>
         </div>
-        <div class="settings-hint">已有账单会保留各自的原始币种，不会被批量修改。</div>
+        <div v-if="editTripCurrency !== 'CNY'" class="form-row">
+          <label class="form-label">结算汇率：1 {{ editTripCurrency }} = 多少 CNY</label>
+          <input v-model="editCnyRate" class="input" type="number" step="0.0001" min="0" placeholder="例如 0.0045" />
+        </div>
+        <div class="settings-hint">已有账单会保留各自的原始币种，不会被批量修改。汇率用于结算页人民币约等值和最终转账建议。</div>
         <div class="modal-actions">
           <button class="btn btn-ghost" @click="showTripSettings = false">取消</button>
           <button class="btn btn-primary" @click="saveTripSettings">保存</button>
@@ -306,22 +310,31 @@ const editingMember = ref<{ id: string; name: string } | null>(null)
 const editName = ref('')
 const showTripSettings = ref(false)
 const editTripCurrency = ref('CNY')
+const editCnyRate = ref('')
 
 
 function openTripSettings() {
   if (!trip.value) return
   editTripCurrency.value = trip.value.currency || 'CNY'
+  const rate = store.getCnyRate(editTripCurrency.value)
+  editCnyRate.value = rate && editTripCurrency.value !== 'CNY' ? rate.toFixed(4) : ''
   showTripSettings.value = true
 }
 
 async function saveTripSettings() {
   if (!trip.value) return
   await store.updateTrip({ ...trip.value, currency: editTripCurrency.value })
+  if (editTripCurrency.value !== 'CNY' && editCnyRate.value) {
+    const cnyRate = parseFloat(editCnyRate.value)
+    if (!cnyRate || cnyRate <= 0) { alert('请输入有效汇率'); return }
+    await store.setManualExchangeRate(editTripCurrency.value, cnyRate)
+  }
   showTripSettings.value = false
   if (editTripCurrency.value !== 'CNY') {
     rateLoading.value = true
-    const data = await fetchRates()
-    rateText.value = getRateText(editTripCurrency.value, data.rates)
+    await store.loadExchangeRates()
+    const cnyRate = store.getCnyRate(editTripCurrency.value)
+    rateText.value = cnyRate ? `1 ${editTripCurrency.value} ≈ ${cnyRate.toFixed(4)} CNY` : ''
     rateLoading.value = false
   } else {
     rateText.value = ''
