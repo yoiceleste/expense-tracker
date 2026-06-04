@@ -115,49 +115,15 @@
                 {{ expense.note || getCategoryName(expense.categoryId) }}
               </div>
               <div class="expense-meta">
-                {{ store.getMemberName(trip!, expense.payerId) }} 付款
-                · {{ expense.splitMode === 'custom' ? '自定义' : '均摊' }}
-                · {{ getPayMethodName(expense.payMethod) }}
+                {{ store.getMemberName(trip!, expense.payerId) }} 付款 · {{ getParticipantsText(expense) }}
               </div>
             </div>
           </div>
           <div class="expense-right">
             <div class="expense-amount">¥{{ formatMoney(expense.amount) }}</div>
-            <div class="expense-per">
-              <template v-if="expense.splitMode === 'custom' && expense.splitAmounts">
-                {{ Object.keys(expense.splitAmounts).length }}人分摊
-              </template>
-              <template v-else-if="expense.splitAmong.length === 1">
-                {{ store.getMemberName(trip!, expense.splitAmong[0]) }} 承担
-              </template>
-              <template v-else>
-                {{ expense.splitAmong.length }}人均摊 · ¥{{ formatMoney(expense.amount / expense.splitAmong.length) }}/人
-              </template>
-            </div>
             <button class="expense-edit" @click.stop="$router.push(`/trip/${tripId}/add?expenseId=${expense.id}`)">✏️</button>
             <button class="expense-delete" @click.stop="confirmDelete(expense.id)">×</button>
           </div>
-        </div>
-        <!-- 自定义金额明细 -->
-        <div v-if="expense.splitMode === 'custom' && expense.splitAmounts" class="expense-split-detail">
-          <div
-            v-for="(amount, memberId) in expense.splitAmounts"
-            :key="memberId"
-            class="split-detail-row"
-          >
-            <span class="split-detail-name">{{ store.getMemberName(trip!, memberId as string) }}</span>
-            <span class="split-detail-amount">¥{{ formatMoney(amount) }}</span>
-          </div>
-        </div>
-        <!-- 图片 -->
-        <div v-if="expense.images && expense.images.length > 0" class="expense-images">
-          <img
-            v-for="(img, idx) in expense.images"
-            :key="idx"
-            :src="img"
-            class="expense-thumb"
-            @click="previewImage(img)"
-          />
         </div>
       </div>
     </div>
@@ -258,6 +224,18 @@ function getCategoryIcon(id: string) {
 
 function getCategoryName(id: string) {
   return store.categories.find(c => c.id === id)?.name || '其他'
+}
+
+function getParticipantsText(expense: any): string {
+  if (expense.splitMode === 'custom' && expense.splitAmounts) {
+    const names = Object.keys(expense.splitAmounts).map(id => store.getMemberName(trip.value!, id))
+    return names.join('、') + ' 分摊'
+  }
+  if (expense.splitAmong.length === 1) {
+    return store.getMemberName(trip.value!, expense.splitAmong[0]) + ' 承担'
+  }
+  const names = expense.splitAmong.map((id: string) => store.getMemberName(trip.value!, id))
+  return names.join('、') + ' 均摊'
 }
 
 function formatDateLabel(dateStr: string) {
