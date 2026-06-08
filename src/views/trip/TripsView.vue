@@ -26,7 +26,7 @@
             · {{ trip.members.length }}人 · {{ trip.expenses.length }}笔
           </div>
         </div>
-        <div class="trip-amount">¥{{ formatMoney(getTripTotal(trip)) }}</div>
+        <div class="trip-amount">{{ formatTripTotals(trip) }}</div>
       </div>
       <div class="trip-members">
         <div
@@ -39,30 +39,6 @@
         </div>
         <div v-if="trip.members.length > 6" class="avatar more">
           +{{ trip.members.length - 6 }}
-        </div>
-      </div>
-    </div>
-
-    <!-- 设置昵称弹窗（创建旅行后弹出） -->
-    <div v-if="showNickname" class="modal-overlay" @click.self="showNickname = false">
-      <div class="modal">
-        <div class="modal-title">✈️ {{ pendingTripName }}</div>
-        <div class="nickname-hint">设置你在旅行中的昵称</div>
-        <div class="form-row">
-          <input
-            ref="nicknameInput"
-            v-model="creatorNickname"
-            class="input nickname-input"
-            placeholder="输入你的昵称"
-            maxlength="10"
-            @keyup.enter="confirmNickname"
-          />
-        </div>
-        <div class="modal-actions">
-          <button class="btn btn-ghost" @click="showNickname = false">取消</button>
-          <button class="btn btn-primary" :disabled="!creatorNickname.trim()" @click="confirmNickname">
-            进入旅行
-          </button>
         </div>
       </div>
     </div>
@@ -104,11 +80,11 @@
 </template>
 
 <script setup lang="ts">
-import { ref, watch, onMounted, nextTick } from 'vue'
+import { ref, watch, onMounted } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { useTripStore } from '../../stores/trip'
 import { formatMoney } from '../../utils/trip-storage'
-import { popularCurrencies } from '../../types/currencies'
+import { getCurrencyInfo, popularCurrencies } from '../../types/currencies'
 import type { Trip } from '../../types/trip'
 
 const router = useRouter()
@@ -116,11 +92,6 @@ const route = useRoute()
 const store = useTripStore()
 
 const showCreate = ref(false)
-const showNickname = ref(false)
-const pendingTripId = ref('')
-const pendingTripName = ref('')
-const creatorNickname = ref('')
-const nicknameInput = ref<HTMLInputElement | null>(null)
 const tripName = ref('')
 const selectedCurrency = ref('CNY')
 const startDate = ref('')
@@ -149,8 +120,13 @@ onMounted(() => {
   }
 })
 
-function getTripTotal(trip: Trip) {
-  return trip.expenses.reduce((s, e) => s + e.amount, 0)
+function formatTripTotals(trip: Trip) {
+  const totals = store.getTripTotalsByCurrency(trip)
+  const entries = Object.entries(totals)
+  if (entries.length === 0) return '¥0.00 CNY'
+  return entries
+    .map(([currency, amount]) => `${getCurrencyInfo(currency).symbol}${formatMoney(amount)} ${currency}`)
+    .join(' / ')
 }
 
 async function createTrip() {
@@ -158,41 +134,16 @@ async function createTrip() {
   if (!name) { alert('请输入旅行名称'); return }
 
   const trip = await store.createTrip(name, selectedCurrency.value, startDate.value, endDate.value)
+  await store.joinTrip(trip.id, '我')
+  await store.loadTripById(trip.id)
+
   showCreate.value = false
   tripName.value = ''
   selectedCurrency.value = 'CNY'
   startDate.value = ''
   endDate.value = ''
 
-  // 弹出昵称设置弹窗
-  pendingTripId.value = trip.id
-  pendingTripName.value = trip.name
-  creatorNickname.value = ''
-  showNickname.value = true
-
-  await nextTick()
-  nicknameInput.value?.focus()
-}
-
-async function confirmNickname() {
-  const name = creatorNickname.value.trim()
-  if (!name) return
-
-  // 加入旅行
-  await store.joinTrip(pendingTripId.value, name)
-  await store.loadTripById(pendingTripId.value)
-  showNickname.value = false
-
-  // 复制分享链接
-  const link = store.getShareLink(store.getTripById(pendingTripId.value)!)
-  try {
-    await navigator.clipboard.writeText(link)
-    alert('邀请链接已复制！发给朋友即可加入旅行')
-  } catch {
-    alert(`邀请链接：\n${link}`)
-  }
-
-  router.push(`/trip/${pendingTripId.value}`)
+  router.push(`/trip/${trip.id}`)
 }
 </script>
 
@@ -400,18 +351,4 @@ async function confirmNickname() {
   padding: 12px;
 }
 
-/* 昵称弹窗 */
-.nickname-hint {
-  text-align: center;
-  font-size: 14px;
-  color: var(--text-secondary);
-  margin-bottom: 20px;
-}
-
-.nickname-input {
-  text-align: center;
-  font-size: 18px;
-  padding: 14px;
-  font-weight: 600;
-}
 </style>
