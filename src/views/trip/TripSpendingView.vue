@@ -6,6 +6,13 @@
       <span style="width:34px"></span>
     </div>
 
+    <div class="stats-note">
+      统计金额按人民币估算，外币按当前汇率折算。
+      <div v-if="missingRateCurrencies.length" class="stats-warning">
+        {{ missingRateCurrencies.join('、') }} 暂无可用汇率，相关金额暂未计入。
+      </div>
+    </div>
+
     <!-- 成员选择 -->
     <div class="member-tabs">
       <div
@@ -24,8 +31,7 @@
     <!-- 当前成员概览 -->
     <div v-if="currentMember" class="overview-card" :style="{ borderTop: `3px solid ${currentMember.color}` }">
       <div class="overview-name">{{ currentMember.name }} 的消费</div>
-      <div class="overview-total">{{ currencySymbol }}{{ formatMoney(currentMember.total) }}</div>
-      <div v-if="isForeignCurrency && currentMemberCny > 0" class="overview-cny">≈ ¥{{ formatMoney(currentMemberCny) }} CNY</div>
+      <div class="overview-total">¥{{ formatMoney(currentMember.total) }} CNY</div>
     </div>
 
     <!-- 分类明细 -->
@@ -51,7 +57,7 @@
               ></div>
             </div>
           </div>
-          <span class="cat-amount">{{ currencySymbol }}{{ formatMoney(cat.amount) }}</span>
+          <span class="cat-amount">¥{{ formatMoney(cat.amount) }}</span>
           <span class="cat-percent">
             {{ (cat.amount / currentMember.total * 100).toFixed(0) }}%
           </span>
@@ -83,7 +89,7 @@
               ></div>
             </div>
           </div>
-          <span class="compare-amount">{{ currencySymbol }}{{ formatMoney(m.total) }}</span>
+          <span class="compare-amount">¥{{ formatMoney(m.total) }}</span>
         </div>
       </div>
     </div>
@@ -111,58 +117,96 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, onMounted, watch } from 'vue'
 import { useRoute } from 'vue-router'
 import { useTripStore } from '../../stores/trip'
 import { formatMoney } from '../../utils/trip-storage'
-import { convertToCNY, fetchRates } from '../../utils/exchange-rate'
-import { getCurrencyInfo } from '../../types/currencies'
-import type { MemberSpending, TripCategory } from '../../types/trip'
+import type { MemberSpending } from '../../types/trip'
 
 const route = useRoute()
 const store = useTripStore()
 const tripId = route.params.id as string
 
 const trip = computed(() => store.getTripById(tripId))
-const currencyInfo = computed(() => getCurrencyInfo(trip.value?.currency || 'CNY'))
-const isForeignCurrency = computed(() => trip.value?.currency !== 'CNY')
-const currencySymbol = computed(() => isForeignCurrency.value ? currencyInfo.value.symbol : '¥')
-const memberSpendings = computed(() => trip.value ? store.getMemberSpending(trip.value) : [])
 const allCategories = computed(() => store.categories)
 
+function toCny(amount: number, currency: string): number {
+  if (currency === 'CNY') return amount
+  const rate = store.getCnyRate(currency)
+  return rate ? amount * rate : 0
+}
+
+const missingRateCurrencies = computed(() => {
+  if (!trip.value) return []
+  return Array.from(new Set(
+    trip.value.expenses
+      .map(expense => store.getExpenseCurrency(expense, trip.value!))
+      .filter(currency => currency !== 'CNY' && !store.getCnyRate(currency))
+  )).sort()
+})
+
+// 统计页统一按 CNY 聚合；每笔账单先按自己的 transactionCurrency 换算。
+const memberSpendings = computed<MemberSpending[]>(() => {
+  if (!trip.value) return []
+
+  return trip.value.members.map(member => {
+    const categoryAmounts = new Map<string, number>()
+
+    trip.value!.expenses.forEach(expense => {
+      if (!expense.splitAmong.includes(member.id) || expense.splitAmong.length === 0) return
+
+      const originalShare = expense.splitMode === 'custom'
+        ? expense.splitAmounts[member.id] || 0
+        : expense.amount / expense.splitAmong.length
+      const currency = store.getExpenseCurrency(expense, trip.value!)
+      const cnyShare = toCny(originalShare, currency)
+      categoryAmounts.set(expense.categoryId, (categoryAmounts.get(expense.categoryId) || 0) + cnyShare)
+    })
+
+    const categories = Array.from(categoryAmounts.entries())
+      .map(([categoryId, amount]) => {
+        const category = store.categories.find(item => item.id === categoryId)
+        return {
+          categoryId,
+          categoryName: category?.name || '未知',
+          categoryIcon: category?.icon || '📦',
+          amount: Math.round(amount * 100) / 100,
+        }
+      })
+      .sort((a, b) => b.amount - a.amount)
+
+    return {
+      memberId: member.id,
+      name: member.name,
+      color: member.color,
+      categories,
+      total: Math.round(categories.reduce((sum, category) => sum + category.amount, 0) * 100) / 100,
+    }
+  })
+})
+
 const maxTotal = computed(() =>
-  Math.max(...memberSpendings.value.map(m => m.total), 1)
+  Math.max(...memberSpendings.value.map(member => member.total), 1)
 )
 
 const selectedMember = ref<string>('')
-
-// 初始化选中第一个成员
-if (memberSpendings.value.length > 0) {
-  selectedMember.value = memberSpendings.value[0].memberId
-}
+watch(memberSpendings, spendings => {
+  if (!spendings.some(member => member.memberId === selectedMember.value)) {
+    selectedMember.value = spendings[0]?.memberId || ''
+  }
+}, { immediate: true })
 
 const currentMember = computed(() =>
-  memberSpendings.value.find(m => m.memberId === selectedMember.value)
+  memberSpendings.value.find(member => member.memberId === selectedMember.value)
 )
 
-// 当前成员消费的人民币等值
-const currentMemberCny = computed(() => {
-  if (!isForeignCurrency.value || !currentMember.value || !exchangeRates) return 0
-  return convertToCNY(currentMember.value.total, trip.value!.currency, exchangeRates)
-})
-
-let exchangeRates: Record<string, number> | null = null
-
 onMounted(async () => {
-  if (isForeignCurrency.value) {
-    const data = await fetchRates()
-    exchangeRates = data.rates
-  }
+  await store.loadExchangeRates()
 })
 
-function getCatAmount(member: MemberSpending, catId: string): string {
-  const cat = member.categories.find(c => c.categoryId === catId)
-  return cat ? currencySymbol.value + formatMoney(cat.amount) : '-'
+function getCatAmount(member: MemberSpending, categoryId: string): string {
+  const category = member.categories.find(item => item.categoryId === categoryId)
+  return category ? `¥${formatMoney(category.amount)}` : '-'
 }
 </script>
 
@@ -195,6 +239,21 @@ function getCatAmount(member: MemberSpending, catId: string): string {
 .header-title {
   font-size: 17px;
   font-weight: 600;
+}
+
+.stats-note {
+  margin-bottom: 16px;
+  padding: 12px 14px;
+  border-radius: 12px;
+  background: var(--card-bg);
+  color: var(--text-secondary);
+  font-size: 13px;
+  line-height: 1.6;
+}
+
+.stats-warning {
+  margin-top: 4px;
+  color: #d97706;
 }
 
 /* 成员切换 */
