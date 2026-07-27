@@ -137,6 +137,30 @@
         </div>
       </div>
 
+    <!-- 旅行设置弹窗 -->
+    <div v-if="showTripSettings" class="modal-overlay" @click.self="showTripSettings = false">
+      <div class="modal">
+        <div class="modal-title">旅行设置</div>
+        <div class="form-row">
+          <label class="form-label">默认币种（只影响之后新建账单）</label>
+          <select v-model="editTripCurrency" class="input currency-select">
+            <option v-for="cur in popularCurrencies" :key="cur.code" :value="cur.code">
+              {{ cur.flag }} {{ cur.name }} ({{ cur.code }})
+            </option>
+          </select>
+        </div>
+        <div v-if="editTripCurrency !== 'CNY'" class="form-row">
+          <label class="form-label">结算汇率：1 {{ editTripCurrency }} = 多少 CNY</label>
+          <input v-model="editCnyRate" class="input" type="number" step="0.0001" min="0" placeholder="例如 0.0045" />
+        </div>
+        <div class="settings-hint">已有账单会保留各自的原始币种，不会被批量修改。汇率用于结算页人民币约等值和最终转账建议。</div>
+        <div class="modal-actions">
+          <button class="btn btn-ghost" @click="showTripSettings = false">取消</button>
+          <button class="btn btn-primary" @click="saveTripSettings">保存</button>
+        </div>
+      </div>
+    </div>
+
     <!-- 快捷操作 -->
     <div class="action-row">
       <button class="action-card" @click="$router.push(`/trip/${tripId}/add`)">
@@ -206,7 +230,7 @@
                 {{ expense.note || getCategoryName(expense.categoryId) }}
               </div>
               <div class="expense-meta">
-                {{ store.getMemberName(trip!, expense.payerId) }} 付款 · {{ getParticipantsText(expense) }}
+                {{ store.getMemberName(trip!, expense.payerId) }} {{ getPaymentAction(expense) }} · {{ getParticipantsText(expense) }}
               </div>
             </div>
           </div>
@@ -252,7 +276,7 @@ const trip = computed(() => store.getTripById(tripId))
 const currencyInfo = computed(() => getCurrencyInfo(trip.value?.currency || 'CNY'))
 const isForeignCurrency = computed(() => trip.value?.currency !== 'CNY')
 const currencySymbol = computed(() => isForeignCurrency.value ? currencyInfo.value.symbol : '¥')
-const total = computed(() => trip.value ? store.getTripTotal(trip.value) : 0)
+const totalByCurrency = computed(() => trip.value ? store.getTripTotalsByCurrency(trip.value) : {})
 
 // 分享链接
 function copyShareLink() {
@@ -295,15 +319,16 @@ const sortedExpenses = computed(() => {
 
 // 按日期分组
 const groupedExpenses = computed(() => {
-  const groups: { date: string; expenses: typeof sortedExpenses.value; dayTotal: number }[] = []
+  const groups: { date: string; expenses: typeof sortedExpenses.value; dayTotals: Record<string, number> }[] = []
   let currentDate = ''
   for (const expense of sortedExpenses.value) {
     if (expense.date !== currentDate) {
       currentDate = expense.date
-      groups.push({ date: currentDate, expenses: [], dayTotal: 0 })
+      groups.push({ date: currentDate, expenses: [], dayTotals: {} })
     }
     groups[groups.length - 1].expenses.push(expense)
-    groups[groups.length - 1].dayTotal += expense.amount
+    const currency = store.getExpenseCurrency(expense, trip.value!)
+    groups[groups.length - 1].dayTotals[currency] = (groups[groups.length - 1].dayTotals[currency] || 0) + expense.amount
   }
   return groups
 })
@@ -322,6 +347,21 @@ onMounted(async () => {
   }
 })
 
+function formatAmount(amount: number, currency: string): string {
+  return `${getCurrencyInfo(currency).symbol}${formatMoney(amount)} ${currency}`
+}
+
+function formatExpenseAmount(expense: any): string {
+  const currency = trip.value ? store.getExpenseCurrency(expense, trip.value) : expense.currency || 'CNY'
+  return formatAmount(expense.amount, currency)
+}
+
+function formatCurrencyTotals(totals: Record<string, number>): string {
+  const entries = Object.entries(totals)
+  if (entries.length === 0) return '¥0.00 CNY'
+  return entries.map(([currency, amount]) => formatAmount(amount, currency)).join(' / ')
+}
+
 function getCategoryIcon(id: string) {
   return store.categories.find(c => c.id === id)?.icon || '💰'
 }
@@ -330,16 +370,16 @@ function getCategoryName(id: string) {
   return store.categories.find(c => c.id === id)?.name || '其他'
 }
 
+function getPaymentAction(expense: any): string {
+  return expense.splitAmong.includes(expense.payerId) ? '付款' : '代付'
+}
+
 function getParticipantsText(expense: any): string {
-  if (expense.splitMode === 'custom' && expense.splitAmounts) {
-    const names = Object.keys(expense.splitAmounts).map(id => store.getMemberName(trip.value!, id))
-    return names.join('、') + ' 分摊'
-  }
-  if (expense.splitAmong.length === 1) {
-    return store.getMemberName(trip.value!, expense.splitAmong[0]) + ' 承担'
-  }
   const names = expense.splitAmong.map((id: string) => store.getMemberName(trip.value!, id))
-  return names.join('、') + ' 均摊'
+  if (names.length === 0) return '未选择分摊人'
+  if (names.length === 1) return `${names[0]} 承担`
+  if (expense.splitMode === 'equal') return `${names.join('、')} 均摊`
+  return `${names.join('、')} 按自定义金额分摊`
 }
 
 function formatDateLabel(dateStr: string) {
@@ -369,6 +409,38 @@ const showAddMember = ref(false)
 const newMemberName = ref('')
 const editingMember = ref<{ id: string; name: string } | null>(null)
 const editName = ref('')
+const showTripSettings = ref(false)
+const editTripCurrency = ref('CNY')
+const editCnyRate = ref('')
+
+
+function openTripSettings() {
+  if (!trip.value) return
+  editTripCurrency.value = trip.value.currency || 'CNY'
+  const rate = store.getCnyRate(editTripCurrency.value)
+  editCnyRate.value = rate && editTripCurrency.value !== 'CNY' ? rate.toFixed(4) : ''
+  showTripSettings.value = true
+}
+
+async function saveTripSettings() {
+  if (!trip.value) return
+  await store.updateTrip({ ...trip.value, currency: editTripCurrency.value })
+  if (editTripCurrency.value !== 'CNY' && editCnyRate.value) {
+    const cnyRate = parseFloat(editCnyRate.value)
+    if (!cnyRate || cnyRate <= 0) { alert('请输入有效汇率'); return }
+    await store.setManualExchangeRate(editTripCurrency.value, cnyRate)
+  }
+  showTripSettings.value = false
+  if (editTripCurrency.value !== 'CNY') {
+    rateLoading.value = true
+    await store.loadExchangeRates()
+    const cnyRate = store.getCnyRate(editTripCurrency.value)
+    rateText.value = cnyRate ? `1 ${editTripCurrency.value} ≈ ${cnyRate.toFixed(4)} CNY` : ''
+    rateLoading.value = false
+  } else {
+    rateText.value = ''
+  }
+}
 
 async function doAddMember() {
   const name = newMemberName.value.trim()

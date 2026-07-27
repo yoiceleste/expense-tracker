@@ -48,6 +48,32 @@
         {{ trip.members.length }} 位成员 · {{ trip.expenses.length }} 笔消费
       </p>
 
+      <div v-if="trip.members.length > 0" class="identity-recovery">
+        <div class="section-label">我已经是旅行成员</div>
+        <div class="member-options">
+          <button
+            v-for="member in trip.members"
+            :key="member.id"
+            class="member-option"
+            :class="{ selected: selectedMemberId === member.id }"
+            @click="selectedMemberId = member.id"
+          >
+            <span class="member-dot" :style="{ background: member.color }"></span>
+            {{ member.name }}
+          </button>
+        </div>
+        <button
+          class="btn btn-primary btn-block"
+          :disabled="!selectedMemberId || joining"
+          @click="handleRestoreIdentity"
+        >
+          {{ joining ? '恢复中...' : '恢复已有身份' }}
+        </button>
+      </div>
+
+      <div v-if="trip.members.length > 0" class="join-divider"><span>或</span></div>
+
+      <div class="section-label">我是新成员</div>
       <div class="form-group">
         <input
           ref="nicknameInput"
@@ -70,18 +96,20 @@
 import { ref, onMounted, nextTick } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useTripStore } from '../../stores/trip'
+import type { Trip } from '../../types/trip'
 
 const route = useRoute()
 const router = useRouter()
 const store = useTripStore()
 
 const shareCode = route.params.code as string
-const trip = ref<any>(null)
+const trip = ref<Trip | null>(null)
 const loading = ref(true)
 const error = ref('')
 const nickname = ref('')
 const nicknameInput = ref<HTMLInputElement | null>(null)
 const joining = ref(false)
+const selectedMemberId = ref('')
 const needsJoin = ref(false)
 
 onMounted(async () => {
@@ -96,7 +124,7 @@ onMounted(async () => {
   trip.value = tripData
 
   // 2. 检查是否已加入过
-  if (store.hasJoined(tripData.id)) {
+  if (store.hasJoined(tripData.id, tripData.members)) {
     // 已加入，直接跳转
     await store.loadTripById(tripData.id)
     router.replace(`/trip/${tripData.id}`)
@@ -111,6 +139,24 @@ onMounted(async () => {
   await nextTick()
   nicknameInput.value?.focus()
 })
+
+
+async function handleRestoreIdentity() {
+  if (!trip.value || !selectedMemberId.value) return
+  joining.value = true
+  try {
+    if (!store.restoreMemberIdentity(trip.value, selectedMemberId.value)) {
+      error.value = '该成员已不存在，请重新选择'
+      return
+    }
+    await store.loadTripById(trip.value.id)
+    router.replace(`/trip/${trip.value.id}`)
+  } catch {
+    error.value = '身份恢复失败，请重试'
+  } finally {
+    joining.value = false
+  }
+}
 
 async function handleJoin() {
   const name = nickname.value.trim()

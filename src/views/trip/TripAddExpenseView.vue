@@ -51,11 +51,12 @@
       <div v-else class="cny-amount-row">
         <span class="currency">¥</span>
         <input
-          v-model="amountStr"
+          v-model="cnyAmountStr"
           type="text"
           class="amount-input"
           placeholder="0.00"
           inputmode="decimal"
+          @input="onCnyInput"
         />
         <span class="cny-label">CNY</span>
       </div>
@@ -125,7 +126,7 @@
       </div>
 
       <!-- 均摊提示 -->
-      <div v-if="splitMode === 'equal' && splitAmong.length > 0 && amountNum > 0" class="split-hint">
+      <div v-if="splitMode === 'equal' && splitAmong.length > 1 && amountNum > 0" class="split-hint">
         每人 {{ currencySymbol }}{{ formatMoney(amountNum / splitAmong.length) }}
       </div>
 
@@ -238,7 +239,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, reactive, watch, onMounted, nextTick } from 'vue'
+import { ref, computed, reactive, watch, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useTripStore } from '../../stores/trip'
 import { formatMoney } from '../../utils/trip-storage'
@@ -254,12 +255,15 @@ const editingExpenseId = (route.query.expenseId as string) || ''
 const isEditing = computed(() => !!editingExpenseId)
 
 const trip = computed(() => store.getTripById(tripId))
-const currencyInfo = computed(() => getCurrencyInfo(trip.value?.currency || 'CNY'))
-const isForeignCurrency = computed(() => trip.value?.currency !== 'CNY')
-const currencySymbol = computed(() => isForeignCurrency.value ? currencyInfo.value.symbol : '¥')
+const tripCurrency = computed(() => trip.value?.currency || 'CNY')
+const tripCurrencyInfo = computed(() => getCurrencyInfo(tripCurrency.value))
+const transactionCurrency = ref(tripCurrency.value)
+const currencyInfo = computed(() => getCurrencyInfo(transactionCurrency.value))
+const isTripForeignCurrency = computed(() => tripCurrency.value !== 'CNY')
+const currencySymbol = computed(() => transactionCurrency.value === 'CNY' ? '¥' : currencyInfo.value.symbol)
 
 // === 金额状态 ===
-// amountStr: 始终存储原始币种金额（外币旅行存外币，人民币旅行存人民币）
+// amountStr: 始终存储当前实际输入币种的原始金额
 const amountStr = ref('')
 // cnyAmountStr: 外币旅行时的人民币金额（可编辑，与外币双向联动）
 const cnyAmountStr = ref('')
@@ -288,6 +292,7 @@ function saveDraft() {
     payerId: payerId.value,
     splitAmong: splitAmong.value,
     splitMode: splitMode.value,
+    transactionCurrency: transactionCurrency.value,
     customAmounts: { ...customAmounts },
     categoryId: categoryId.value,
     payMethod: payMethod.value,
@@ -310,6 +315,8 @@ function loadDraft(): boolean {
     payerId.value = draft.payerId || ''
     splitAmong.value = draft.splitAmong || []
     splitMode.value = draft.splitMode || 'equal'
+    transactionCurrency.value = draft.transactionCurrency || tripCurrency.value
+    hydrateAmountInputs()
     categoryId.value = draft.categoryId || store.categories[0]?.id || ''
     payMethod.value = draft.payMethod || 'wechat'
     note.value = draft.note || ''
@@ -346,6 +353,7 @@ function resetForm() {
   payerId.value = trip.value?.members[0]?.id || ''
   splitAmong.value = []
   splitMode.value = 'equal'
+  transactionCurrency.value = tripCurrency.value
   Object.keys(customAmounts).forEach(k => delete customAmounts[k])
   categoryId.value = store.categories[0]?.id || ''
   payMethod.value = 'wechat'
@@ -428,10 +436,10 @@ const cnyEquivalent = computed(() => {
 })
 
 onMounted(async () => {
-  if (trip.value && trip.value.currency !== 'CNY') {
+  if (isTripForeignCurrency.value) {
     const data = await fetchRates()
-    exchangeRates = data.rates
-    rateText.value = getRateText(trip.value.currency, data.rates)
+    exchangeRates.value = data.rates
+    updateRateText()
   }
 
   // 编辑模式：加载已有数据
@@ -542,6 +550,16 @@ function toggleSplit(id: string) {
   else splitAmong.value.push(id)
 }
 
+
+watch(tripCurrency, async (currency) => {
+  if (currency !== 'CNY' && !exchangeRates.value[currency]) {
+    const data = await fetchRates()
+    exchangeRates.value = data.rates
+  }
+  if (!amountStr.value) transactionCurrency.value = currency
+  updateRateText()
+})
+
 function getMemberName(id: string) {
   return trip.value ? store.getMemberName(trip.value, id) : '?'
 }
@@ -569,7 +587,7 @@ async function save() {
     })
   }
 
-  const expenseCurrency = trip.value?.currency || 'CNY'
+  const expenseCurrency = transactionCurrency.value || trip.value?.currency || 'CNY'
 
   if (!isEditing.value) {
     await store.addExpense(tripId, {
@@ -717,6 +735,7 @@ async function save() {
   gap: 4px;
 }
 
+
 .foreign-amount-row {
   display: flex;
   align-items: baseline;
@@ -788,6 +807,30 @@ async function save() {
 .cny-amount-row {
   display: flex;
   align-items: baseline;
+}
+
+.helper-row {
+  padding: 8px 0 4px;
+  border-bottom: 1px solid transparent;
+}
+
+.helper-currency {
+  font-size: 18px;
+  color: var(--text-secondary);
+}
+
+.cny-helper-input {
+  flex: 1;
+  border: none;
+  outline: none;
+  font-size: 20px;
+  font-weight: 600;
+  background: transparent;
+  color: var(--text-secondary);
+}
+
+.cny-helper-input::placeholder {
+  color: #ddd;
 }
 
 .cny-label {

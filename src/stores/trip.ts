@@ -4,8 +4,9 @@ import type { Trip, TripExpense, TripMember, Transfer, MemberBalance, MemberSpen
 import { defaultTripCategories } from '../types/trip-defaults'
 import * as storage from '../utils/trip-storage'
 import { supabase } from '../lib/supabase'
-import { convertToCNY } from '../utils/exchange-rate'
+import { convertFromCNY, convertToCNY, fetchRates } from '../utils/exchange-rate'
 import type { RealtimeChannel } from '@supabase/supabase-js'
+import { calculateTripTransfers } from '../utils/trip-settlement'
 
 export const useTripStore = defineStore('trip', () => {
   const trips = ref<Trip[]>([])
@@ -16,6 +17,29 @@ export const useTripStore = defineStore('trip', () => {
 
   // Realtime 订阅管理
   const channels = ref<Record<string, RealtimeChannel>>({})
+
+  // 手动汇率覆盖：保存为 1 外币 = x CNY
+  const MANUAL_RATE_KEY = 'trip_manual_exchange_rates_cny'
+
+  function getManualRateOverrides(): Record<string, number> {
+    try {
+      return JSON.parse(localStorage.getItem(MANUAL_RATE_KEY) || '{}')
+    } catch {
+      return {}
+    }
+  }
+
+  function saveManualRateOverrides(rates: Record<string, number>) {
+    localStorage.setItem(MANUAL_RATE_KEY, JSON.stringify(rates))
+  }
+
+  function applyManualRateOverrides(rates: Record<string, number>): Record<string, number> {
+    const merged = { ...rates }
+    Object.entries(getManualRateOverrides()).forEach(([currency, cnyRate]) => {
+      if (currency !== 'CNY' && cnyRate > 0) merged[currency] = 1 / cnyRate
+    })
+    return merged
+  }
 
   // 初始化 - 只加载用户已加入的旅行
   async function init() {
@@ -115,9 +139,23 @@ export const useTripStore = defineStore('trip', () => {
     return member
   }
 
-  // 检查是否已加入某个旅行
-  function hasJoined(tripId: string): boolean {
-    return !!getMyMemberId(tripId)
+  // localStorage 丢失时，将当前浏览器重新绑定到旅行中的已有成员。
+  function restoreMemberIdentity(trip: Trip, memberId: string): boolean {
+    if (!trip.members.some(member => member.id === memberId)) return false
+    storage.setLocalMemberId(trip.id, memberId)
+    currentMemberIds.value[trip.id] = memberId
+    return true
+  }
+
+  // 检查是否已加入某个旅行；拿到旅行数据时同时排除已失效的本地身份。
+  function hasJoined(tripId: string, members?: TripMember[]): boolean {
+    const memberId = getMyMemberId(tripId)
+    if (!memberId) return false
+    const knownMembers = members || trips.value.find(trip => trip.id === tripId)?.members
+    if (!knownMembers || knownMembers.some(member => member.id === memberId)) return true
+    storage.removeLocalMemberId(tripId)
+    delete currentMemberIds.value[tripId]
+    return false
   }
 
   async function removeMember(tripId: string, memberId: string) {
@@ -236,72 +274,119 @@ export const useTripStore = defineStore('trip', () => {
       paid: 0,
       share: 0,
       balance: 0,
+      paidCny: 0,
+      shareCny: 0,
+      balanceCny: 0,
     }))
 
+    ratesVersion.value
+    const settlementCurrency = trip.currency || 'CNY'
+
     trip.expenses.forEach(expense => {
+      const expenseCurrency = getExpenseCurrency(expense, trip)
+      const amountCny = toCnyAmount(expense.amount, expenseCurrency)
       const payer = balances.find(b => b.memberId === expense.payerId)
-      if (payer) payer.paid += expense.amount
+      if (payer) payer.paidCny += amountCny
+
+      const selectedParticipants = expense.splitAmong.filter(memberId =>
+        balances.some(b => b.memberId === memberId)
+      )
 
       if (expense.splitMode === 'custom' && expense.splitAmounts) {
-        Object.entries(expense.splitAmounts).forEach(([memberId, amount]) => {
+        selectedParticipants.forEach(memberId => {
           const member = balances.find(b => b.memberId === memberId)
-          if (member) member.share += amount
+          const shareAmount = expense.splitAmounts[memberId] || 0
+          if (member) member.shareCny += toCnyAmount(shareAmount, expenseCurrency)
         })
       } else {
-        const splitCount = expense.splitAmong.length
+        const splitCount = selectedParticipants.length
         if (splitCount > 0) {
-          const perPerson = expense.amount / splitCount
-          expense.splitAmong.forEach(memberId => {
+          const perPersonCny = amountCny / splitCount
+          selectedParticipants.forEach(memberId => {
             const member = balances.find(b => b.memberId === memberId)
-            if (member) member.share += perPerson
+            if (member) member.shareCny += perPersonCny
           })
         }
       }
     })
 
-    balances.forEach(b => { b.balance = b.paid - b.share })
+    balances.forEach(b => {
+      b.balanceCny = b.paidCny - b.shareCny
+      b.paid = roundMoney(fromCnyAmount(b.paidCny, settlementCurrency))
+      b.share = roundMoney(fromCnyAmount(b.shareCny, settlementCurrency))
+      b.balance = roundMoney(fromCnyAmount(b.balanceCny, settlementCurrency))
+      b.paidCny = roundMoney(b.paidCny)
+      b.shareCny = roundMoney(b.shareCny)
+      b.balanceCny = roundMoney(b.balanceCny)
+    })
     return balances
   }
 
   // 汇率缓存（用于结算时计算人民币等值）
-  let cachedRates: Record<string, number> | null = null
+  const cachedRates = ref<Record<string, number> | null>(null)
+  const ratesVersion = ref(0)
 
   async function loadExchangeRates(): Promise<Record<string, number>> {
-    if (cachedRates) return cachedRates
+    if (cachedRates.value) return cachedRates.value
     try {
-      const { fetchRates } = await import('../utils/exchange-rate')
       const data = await fetchRates()
-      cachedRates = data.rates
-      return cachedRates
+      cachedRates.value = applyManualRateOverrides(data.rates)
+      ratesVersion.value++
+      return cachedRates.value
     } catch {
       return {}
     }
   }
 
+  async function setManualExchangeRate(currency: string, cnyRate: number): Promise<void> {
+    if (currency === 'CNY' || cnyRate <= 0) return
+    const overrides = getManualRateOverrides()
+    overrides[currency] = cnyRate
+    saveManualRateOverrides(overrides)
+    if (!cachedRates.value) await loadExchangeRates()
+    cachedRates.value = applyManualRateOverrides(cachedRates.value || { CNY: 1 })
+    ratesVersion.value++
+  }
+
+  function getManualExchangeRate(currency: string): number | null {
+    const rate = getManualRateOverrides()[currency]
+    return rate && rate > 0 ? rate : null
+  }
+
+  function getCnyRate(currency: string): number | null {
+    if (currency === 'CNY') return 1
+    const manualRate = getManualExchangeRate(currency)
+    if (manualRate) return manualRate
+    ratesVersion.value
+    const rate = cachedRates.value?.[currency]
+    return rate ? 1 / rate : null
+  }
+
+  function getExpenseCurrency(expense: TripExpense, trip: Trip): string {
+    return expense.currency || trip.currency || 'CNY'
+  }
+
+  function toCnyAmount(amount: number, currency: string): number {
+    if (currency === 'CNY') return amount
+    return cachedRates.value ? convertToCNY(amount, currency, cachedRates.value) : amount
+  }
+
+  function fromCnyAmount(amount: number, currency: string): number {
+    if (currency === 'CNY') return amount
+    return cachedRates.value ? convertFromCNY(amount, currency, cachedRates.value) : amount
+  }
+
+  function roundMoney(amount: number): number {
+    return Math.round(amount * 100) / 100
+  }
+
   function getTransfers(trip: Trip): Transfer[] {
-    const balances = getMemberBalances(trip)
-    const transfers: Transfer[] = []
-
-    const creditors = balances.filter(b => b.balance > 0.01).map(b => ({ ...b })).sort((a, b) => b.balance - a.balance)
-    const debtors = balances.filter(b => b.balance < -0.01).map(b => ({ ...b, balance: Math.abs(b.balance) })).sort((a, b) => b.balance - a.balance)
-
-    let i = 0, j = 0
-    while (i < creditors.length && j < debtors.length) {
-      const amount = Math.min(creditors[i].balance, debtors[j].balance)
-      if (amount > 0.01) {
-        const roundedAmount = Math.round(amount * 100) / 100
-        let cnyAmount = 0
-        if (trip.currency !== 'CNY' && cachedRates) {
-          cnyAmount = Math.round(convertToCNY(roundedAmount, trip.currency, cachedRates) * 100) / 100
-        }
-        transfers.push({ fromId: debtors[j].memberId, toId: creditors[i].memberId, amount: roundedAmount, cnyAmount })
-      }
-      creditors[i].balance -= amount
-      debtors[j].balance -= amount
-      if (creditors[i].balance < 0.01) i++
-      if (debtors[j].balance < 0.01) j++
-    }
-    return transfers
+    ratesVersion.value
+    const cnyRates = Object.fromEntries(
+      Array.from(new Set(trip.expenses.map(expense => getExpenseCurrency(expense, trip))))
+        .map(currency => [currency, getCnyRate(currency) || 1]),
+    )
+    return calculateTripTransfers(trip, cnyRates)
   }
 
   function getMemberSpending(trip: Trip): MemberSpending[] {
@@ -310,12 +395,12 @@ export const useTripStore = defineStore('trip', () => {
       trip.expenses.forEach(expense => {
         let perPerson: number
         if (expense.splitMode === 'custom' && expense.splitAmounts) {
-          // 自定义模式：只有 splitAmounts 中有记录的成员才参与
-          if (!(member.id in expense.splitAmounts)) return
+          // 自定义模式：只有被选中的 splitAmong 成员才参与
+          if (!expense.splitAmong.includes(member.id)) return
           perPerson = expense.splitAmounts[member.id] || 0
         } else {
           // 均摊模式：只有 splitAmong 中的成员才参与
-          if (!expense.splitAmong.includes(member.id)) return
+          if (!expense.splitAmong.includes(member.id) || expense.splitAmong.length === 0) return
           perPerson = expense.amount / expense.splitAmong.length
         }
         const current = catMap.get(expense.categoryId) || 0
@@ -342,18 +427,34 @@ export const useTripStore = defineStore('trip', () => {
   }
 
   function getTripTotal(trip: Trip) {
-    return trip.expenses.reduce((s, e) => s + e.amount, 0)
+    return trip.expenses
+      .filter(e => getExpenseCurrency(e, trip) === trip.currency)
+      .reduce((s, e) => s + e.amount, 0)
+  }
+
+  function getTripTotalCny(trip: Trip) {
+    ratesVersion.value
+    return roundMoney(trip.expenses.reduce((s, e) => s + toCnyAmount(e.amount, getExpenseCurrency(e, trip)), 0))
+  }
+
+  function getTripTotalsByCurrency(trip: Trip) {
+    const totals: Record<string, number> = {}
+    trip.expenses.forEach(e => {
+      const currency = getExpenseCurrency(e, trip)
+      totals[currency] = (totals[currency] || 0) + e.amount
+    })
+    return Object.fromEntries(Object.entries(totals).map(([currency, amount]) => [currency, roundMoney(amount)]))
   }
 
   return {
     trips, categories, currentMemberIds,
     init,
-    getMyMemberId, hasJoined, joinTrip, findByShareCode, getShareLink, loadTripById,
+    getMyMemberId, hasJoined, joinTrip, restoreMemberIdentity, findByShareCode, getShareLink, loadTripById,
     subscribeTrip, unsubscribeTrip,
     createTrip, addMember, removeMember, renameMember, updateTrip, removeTrip, getTripById,
     addExpense, updateExpense, removeExpense,
     getMemberBalances, getTransfers, getMemberSpending,
-    getMemberName, getMemberColor, getTripTotal,
-    loadExchangeRates,
+    getMemberName, getMemberColor, getTripTotal, getTripTotalCny, getTripTotalsByCurrency, getExpenseCurrency,
+    loadExchangeRates, setManualExchangeRate, getManualExchangeRate, getCnyRate,
   }
 })

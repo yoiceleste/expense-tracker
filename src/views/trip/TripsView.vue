@@ -164,11 +164,11 @@
 </template>
 
 <script setup lang="ts">
-import { ref, watch, onMounted, nextTick } from 'vue'
+import { ref, watch, onMounted } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { useTripStore } from '../../stores/trip'
 import { formatMoney } from '../../utils/trip-storage'
-import { popularCurrencies } from '../../types/currencies'
+import { getCurrencyInfo, popularCurrencies } from '../../types/currencies'
 import type { Trip } from '../../types/trip'
 
 const router = useRouter()
@@ -176,11 +176,6 @@ const route = useRoute()
 const store = useTripStore()
 
 const showCreate = ref(false)
-const showNickname = ref(false)
-const pendingTripId = ref('')
-const pendingTripName = ref('')
-const creatorNickname = ref('')
-const nicknameInput = ref<HTMLInputElement | null>(null)
 const tripName = ref('')
 const selectedCurrency = ref('CNY')
 const startDate = ref('')
@@ -201,8 +196,13 @@ onMounted(() => {
   if (route.query.create === '1') openCreateModal()
 })
 
-function getTripTotal(trip: Trip) {
-  return trip.expenses.reduce((s, e) => s + e.amount, 0)
+function formatTripTotals(trip: Trip) {
+  const totals = store.getTripTotalsByCurrency(trip)
+  const entries = Object.entries(totals)
+  if (entries.length === 0) return '¥0.00 CNY'
+  return entries
+    .map(([currency, amount]) => `${getCurrencyInfo(currency).symbol}${formatMoney(amount)} ${currency}`)
+    .join(' / ')
 }
 
 function getCurrencySymbol(code: string) {
@@ -221,6 +221,9 @@ async function createTrip() {
   if (!name) { alert('请输入旅行名称'); return }
 
   const trip = await store.createTrip(name, selectedCurrency.value, startDate.value, endDate.value)
+  await store.joinTrip(trip.id, '我')
+  await store.loadTripById(trip.id)
+
   showCreate.value = false
   tripName.value = ''
   selectedCurrency.value = 'CNY'
