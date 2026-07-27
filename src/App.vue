@@ -93,27 +93,237 @@ onMounted(async () => {
 }
 
 :root {
-  --primary: #4f6ef7;
-  --primary-light: #eef1fe;
-  --income: #52c41a;
-  --income-light: #f6ffed;
-  --expense: #ff4d4f;
-  --expense-light: #fff2f0;
-  --bg: #f5f6fa;
+  /* 主色系 - 清新旅行风 */
+  --primary: #3B9BCC;
+  --primary-light: #E8F4FA;
+  --primary-gradient: linear-gradient(135deg, #3B9BCC 0%, #56C6A9 100%);
+  --primary-gradient-soft: linear-gradient(135deg, #E8F4FA 0%, #E4F7F0 100%);
+  --primary-gradient-v: linear-gradient(180deg, #3B9BCC 0%, #56C6A9 100%);
+
+  /* 点缀色 */
+  --accent: #F5A623;
+  --accent-light: #FFF4E0;
+
+  /* 收支色 */
+  --income: #4ECDC4;
+  --income-light: #E8FAF8;
+  --expense: #FF6B6B;
+  --expense-light: #FFF0F0;
+
+  /* 背景与卡片 */
+  --bg: #F2F5F9;
+  --bg-trip: linear-gradient(180deg, #E8F4FA 0%, #F2F5F9 40%);
   --card-bg: #ffffff;
-  --text: #1a1a2e;
-  --text-secondary: #8c8c8c;
-  --border: #e8e8e8;
-  --shadow: 0 2px 12px rgba(0, 0, 0, 0.06);
-  --radius: 12px;
+  --card-bg-soft: rgba(255, 255, 255, 0.75);
+
+  /* 文字 */
+  --text: #1E2A3A;
+  --text-secondary: #7A8BA0;
+  --text-tertiary: #A8B8C8;
+
+  /* 边框与阴影 */
+  --border: #E2EAF0;
+  --border-light: #EDF2F7;
+  --shadow: 0 2px 16px rgba(59, 155, 204, 0.06);
+  --shadow-lg: 0 8px 32px rgba(59, 155, 204, 0.10);
+  --shadow-accent: 0 4px 16px rgba(245, 166, 35, 0.15);
+
+  /* 圆角 */
+  --radius: 16px;
+  --radius-lg: 20px;
+  --radius-xl: 24px;
+  --radius-full: 9999px;
   --nav-height: 60px;
+
+  /* 字体 */
+  --font-display: 'Nunito', 'PingFang SC', 'Microsoft YaHei', sans-serif;
+  --font-body: 'DM Sans', 'PingFang SC', 'Microsoft YaHei', sans-serif;
 }
 
 body {
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'PingFang SC', 'Microsoft YaHei', sans-serif;
+  font-family: var(--font-body);
   background: var(--bg);
   color: var(--text);
   -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* ===== 旅行主题通用样式 ===== */
+
+.trip-page {
+  min-height: calc(100vh - var(--nav-height));
+  padding-bottom: 40px;
+}
+
+/* 旅行页面顶部渐变背景装饰 */
+.trip-hero-bg {
+  position: relative;
+  background: var(--bg-trip);
+  padding: 0 20px 24px;
+  overflow: hidden;
+}
+
+.trip-hero-bg::before {
+  content: '';
+  position: absolute;
+  top: -40px;
+  right: -30px;
+  width: 180px;
+  height: 180px;
+  background: radial-gradient(circle, rgba(59, 155, 204, 0.08) 0%, transparent 70%);
+  border-radius: 50%;
+  pointer-events: none;
+}
+
+.trip-hero-bg::after {
+  content: '';
+  position: absolute;
+  top: 20px;
+  left: -40px;
+  width: 120px;
+  height: 120px;
+  background: radial-gradient(circle, rgba(86, 198, 169, 0.06) 0%, transparent 70%);
+  border-radius: 50%;
+  pointer-events: none;
+}
+
+/* 旅行通用返回导航栏 */
+.trip-nav {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16px 0 12px;
+  position: relative;
+  z-index: 1;
+}
+
+.trip-nav-back {
+  width: 38px;
+  height: 38px;
+  border: none;
+  background: var(--card-bg-soft);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  border-radius: var(--radius);
+  font-size: 18px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+  transition: transform 0.15s ease;
+}
+
+.trip-nav-back:active {
+  transform: scale(0.93);
+}
+
+.trip-nav-title {
+  font-family: var(--font-display);
+  font-size: 17px;
+  font-weight: 700;
+  color: var(--text);
+  letter-spacing: -0.01em;
+}
+
+.trip-nav-placeholder {
+  width: 38px;
+}
+
+/* 磨砂玻璃卡片 */
+.glass-card {
+  background: var(--card-bg-soft);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid rgba(255, 255, 255, 0.6);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow);
+}
+
+/* 旅行 FAB 按钮 */
+.trip-fab {
+  position: fixed;
+  bottom: calc(var(--nav-height) + 20px);
+  right: calc(50% - 240px + 20px);
+  width: 56px;
+  height: 56px;
+  border: none;
+  background: var(--primary-gradient);
+  color: white;
+  border-radius: var(--radius);
+  font-size: 28px;
+  font-weight: 300;
+  cursor: pointer;
+  box-shadow: 0 6px 20px rgba(59, 155, 204, 0.35);
+  transition: transform 0.2s cubic-bezier(0.34, 1.56, 0.64, 1);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 50;
+}
+
+.trip-fab:active {
+  transform: scale(0.90);
+}
+
+@media (max-width: 480px) {
+  .trip-fab {
+    right: 20px;
+  }
+}
+
+/* 旅行主题 section 标题 */
+.trip-section-title {
+  font-family: var(--font-display);
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--text-secondary);
+  letter-spacing: 0.02em;
+  padding: 0 20px;
+  margin-bottom: 10px;
+}
+
+/* 旅行主题空状态 */
+.trip-empty {
+  text-align: center;
+  padding: 60px 24px;
+}
+
+.trip-empty-icon {
+  font-size: 64px;
+  margin-bottom: 16px;
+  filter: saturate(0.85);
+}
+
+.trip-empty-title {
+  font-family: var(--font-display);
+  font-size: 18px;
+  font-weight: 700;
+  color: var(--text);
+  margin-bottom: 8px;
+}
+
+.trip-empty-desc {
+  font-size: 14px;
+  color: var(--text-secondary);
+  line-height: 1.5;
+}
+
+/* 入场动画 */
+@keyframes tripSlideUp {
+  from {
+    opacity: 0;
+    transform: translateY(16px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.trip-animate-in {
+  animation: tripSlideUp 0.4s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+  opacity: 0;
 }
 
 .app {

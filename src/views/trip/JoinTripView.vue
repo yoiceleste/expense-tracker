@@ -1,22 +1,48 @@
 <template>
   <div class="join-page">
     <div v-if="loading" class="loading-state">
-      <div class="loading-icon">✈️</div>
+      <div class="loading-icon">
+        <svg width="56" height="56" viewBox="0 0 56 56" fill="none">
+          <circle cx="28" cy="28" r="26" fill="var(--primary-light)" opacity="0.7"/>
+          <path d="M16 32L28 18L40 32" stroke="var(--primary)" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
+          <circle cx="28" cy="24" r="3" fill="var(--accent)"/>
+          <path d="M12 32H44" stroke="var(--primary)" stroke-width="2" stroke-linecap="round" opacity="0.4"/>
+        </svg>
+      </div>
       <div>加载中...</div>
     </div>
 
     <div v-else-if="error" class="error-state">
-      <div class="error-icon">😔</div>
+      <div class="error-icon">
+        <svg width="56" height="56" viewBox="0 0 56 56" fill="none">
+          <circle cx="28" cy="28" r="26" fill="var(--expense-light)" opacity="0.7"/>
+          <path d="M20 20L36 36" stroke="var(--expense)" stroke-width="2.5" stroke-linecap="round"/>
+          <path d="M36 20L20 36" stroke="var(--expense)" stroke-width="2.5" stroke-linecap="round"/>
+          <circle cx="28" cy="28" r="4" fill="var(--expense)" opacity="0.15"/>
+        </svg>
+      </div>
       <div class="error-text">{{ error }}</div>
     </div>
 
     <div v-else-if="trip && !needsJoin" class="redirect-state">
-      <div class="redirect-icon">✅</div>
+      <div class="redirect-icon">
+        <svg width="56" height="56" viewBox="0 0 56 56" fill="none">
+          <circle cx="28" cy="28" r="26" fill="var(--income-light)" opacity="0.7"/>
+          <path d="M18 28L24 34L38 20" stroke="var(--income)" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+      </div>
       <div>正在进入 {{ trip.name }}...</div>
     </div>
 
-    <div v-else-if="trip" class="join-card">
-      <div class="join-logo">✈️</div>
+    <div v-else-if="trip" class="join-card trip-animate-in">
+      <div class="join-logo">
+        <svg width="64" height="64" viewBox="0 0 64 64" fill="none">
+          <circle cx="32" cy="32" r="30" fill="var(--primary-light)" opacity="0.6"/>
+          <path d="M8 32C8 32 20 24 32 24C44 24 56 32 56 32C56 32 44 40 32 40C20 40 8 32 8 32Z" fill="rgba(59,155,204,0.25)"/>
+          <path d="M32 20L36 28H28L32 20Z" fill="rgba(59,155,204,0.5)"/>
+          <circle cx="32" cy="32" r="3" fill="var(--primary)"/>
+        </svg>
+      </div>
       <h1 class="join-title">{{ trip.name }}</h1>
       <p class="join-meta">
         {{ trip.members.length }} 位成员 · {{ trip.expenses.length }} 笔消费
@@ -106,75 +132,190 @@ async function handleJoin() {
 .join-page {
   min-height: 100vh;
   display: flex;
+  flex-direction: column;
   align-items: center;
   justify-content: center;
   padding: 20px;
-  background: var(--bg);
+  position: relative;
+  overflow: hidden;
+  background: var(--bg-trip);
 }
 
+/* 顶部渐变装饰 */
+.join-page::before {
+  content: '';
+  position: absolute;
+  top: -60px;
+  right: -40px;
+  width: 200px;
+  height: 200px;
+  background: radial-gradient(circle, rgba(59, 155, 204, 0.1) 0%, transparent 70%);
+  border-radius: 50%;
+  pointer-events: none;
+}
+
+.join-page::after {
+  content: '';
+  position: absolute;
+  bottom: -40px;
+  left: -30px;
+  width: 160px;
+  height: 160px;
+  background: radial-gradient(circle, rgba(86, 198, 169, 0.08) 0%, transparent 70%);
+  border-radius: 50%;
+  pointer-events: none;
+}
+
+/* 加入卡片 - 磨砂玻璃 */
 .join-card {
-  background: var(--card-bg);
-  border-radius: 20px;
-  padding: 40px 28px;
+  background: var(--card-bg-soft);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border: 1px solid rgba(255, 255, 255, 0.7);
+  border-radius: var(--radius-xl);
+  padding: 40px 28px 32px;
   width: 100%;
   max-width: 380px;
-  box-shadow: 0 4px 24px rgba(0, 0, 0, 0.08);
+  box-shadow: var(--shadow-lg);
   text-align: center;
+  position: relative;
+  z-index: 1;
 }
 
+/* Logo */
 .join-logo {
-  font-size: 56px;
-  margin-bottom: 8px;
+  margin-bottom: 12px;
+  display: flex;
+  justify-content: center;
 }
 
+.join-logo svg {
+  animation: floatLogo 3s ease-in-out infinite;
+}
+
+@keyframes floatLogo {
+  0%, 100% { transform: translateY(0) rotate(-3deg); }
+  50% { transform: translateY(-4px) rotate(0deg); }
+}
+
+/* 标题 */
 .join-title {
-  font-size: 22px;
-  font-weight: 700;
-  margin-bottom: 4px;
+  font-family: var(--font-display);
+  font-size: 24px;
+  font-weight: 800;
+  color: var(--text);
+  margin-bottom: 6px;
+  letter-spacing: -0.02em;
 }
 
+/* 元信息 */
 .join-meta {
   font-size: 13px;
   color: var(--text-secondary);
-  margin-bottom: 24px;
+  margin-bottom: 28px;
+  font-weight: 500;
 }
 
+/* 表单 */
 .form-group {
-  margin-bottom: 16px;
+  margin-bottom: 18px;
 }
 
 .form-group .input {
   text-align: center;
-  font-size: 16px;
-  padding: 14px;
+  font-family: var(--font-display);
+  font-size: 18px;
+  font-weight: 700;
+  padding: 14px 16px;
+  border-radius: var(--radius);
+  border: 2px solid var(--border-light);
+  background: var(--card-bg);
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+  letter-spacing: -0.01em;
 }
 
+.form-group .input:focus {
+  border-color: var(--primary);
+  box-shadow: 0 0 0 4px rgba(59, 155, 204, 0.1);
+  outline: none;
+}
+
+.form-group .input::placeholder {
+  font-weight: 500;
+  color: var(--text-tertiary);
+  font-size: 15px;
+}
+
+/* 按钮 */
 .btn-block {
   padding: 14px;
   font-size: 16px;
-  font-weight: 600;
+  font-weight: 700;
+  font-family: var(--font-display);
+  border-radius: var(--radius);
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
 }
 
 .btn-block:disabled {
-  opacity: 0.6;
+  opacity: 0.5;
+  transform: none;
 }
 
+.btn-primary.btn-block {
+  background: var(--primary-gradient);
+  box-shadow: 0 4px 12px rgba(59, 155, 204, 0.3);
+  border: none;
+}
+
+.btn-primary.btn-block:active:not(:disabled) {
+  transform: scale(0.97);
+}
+
+/* 加载状态 */
 .loading-state,
 .error-state,
 .redirect-state {
   text-align: center;
   color: var(--text-secondary);
   font-size: 15px;
+  font-weight: 500;
+  position: relative;
+  z-index: 1;
 }
 
 .loading-icon,
 .error-icon,
 .redirect-icon {
-  font-size: 48px;
-  margin-bottom: 12px;
+  margin-bottom: 16px;
+  display: flex;
+  justify-content: center;
+}
+
+.loading-icon svg {
+  animation: pulse 1.5s ease-in-out infinite;
+}
+
+.redirect-icon svg {
+  animation: checkBounce 0.6s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+@keyframes checkBounce {
+  0% { transform: scale(0); }
+  100% { transform: scale(1); }
 }
 
 .error-text {
   color: var(--expense);
+  font-family: var(--font-display);
+  font-weight: 600;
+  font-size: 15px;
+  max-width: 260px;
+  margin: 0 auto;
+  line-height: 1.5;
+}
+
+@keyframes pulse {
+  0%, 100% { transform: scale(1); opacity: 1; }
+  50% { transform: scale(1.08); opacity: 0.8; }
 }
 </style>

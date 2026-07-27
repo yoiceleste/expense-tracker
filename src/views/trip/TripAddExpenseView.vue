@@ -1,14 +1,17 @@
 <template>
-  <div class="add-expense-page">
-    <div class="detail-header">
-      <button class="back-btn" @click="$router.back()">←</button>
-      <span class="header-title">{{ isEditing ? '编辑消费' : '记一笔' }}</span>
-      <span style="width:34px"></span>
+  <div class="add-expense-page trip-animate-in">
+    <div class="trip-nav">
+      <button class="trip-nav-back" @click="$router.back()">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
+      </button>
+      <span class="trip-nav-title">{{ isEditing ? '编辑消费' : '记一笔' }}</span>
+      <span class="trip-nav-placeholder"></span>
     </div>
 
     <!-- 草稿恢复提示 -->
-    <div v-if="showDraftTip" class="draft-tip">
-      <span>📝 已恢复上次未完成的账单</span>
+    <div v-if="showDraftTip" class="draft-toast">
+      <svg class="draft-toast-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#F5A623" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
+      <span class="draft-toast-text">已恢复上次未完成的账单</span>
       <button class="draft-discard" @click="discardDraft">丢弃</button>
     </div>
 
@@ -88,7 +91,7 @@
       </div>
 
       <!-- 未选择分摊人提示 -->
-      <div v-if="splitAmong.length === 0" class="split-hint" style="background: #fff3e0; color: #e65100;">
+      <div v-if="splitAmong.length === 0" class="split-hint split-hint-warning" style="background: #FFF5EB; color: #E67E22;">
         请选择参与分摊的成员
       </div>
 
@@ -189,7 +192,9 @@
       <div class="image-grid">
         <div v-for="(img, idx) in images" :key="idx" class="image-item">
           <img :src="img" class="image-preview" @click="previewImage(idx)" />
-          <button class="image-remove" @click="images.splice(idx, 1)">×</button>
+          <button class="image-remove" @click="images.splice(idx, 1)">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+          </button>
         </div>
         <label v-if="images.length < 9" class="image-add">
           <input
@@ -200,7 +205,7 @@
             class="image-input"
             @change="onImageSelect"
           />
-          <span class="image-add-icon">📷</span>
+          <svg class="image-add-icon" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="var(--primary)" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="3"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
           <span class="image-add-text">{{ images.length }}/9</span>
         </label>
       </div>
@@ -546,100 +551,159 @@ async function save() {
 </script>
 
 <style scoped>
+/* ===== 页面容器 ===== */
 .add-expense-page {
-  padding: 0 16px 40px;
+  padding: 0 16px 48px;
+  min-height: 100vh;
+  background: var(--bg);
 }
 
-.detail-header {
+/* ===== 返回导航（磨砂玻璃） ===== */
+.trip-nav {
   display: flex;
   align-items: center;
   justify-content: space-between;
   padding: 16px 0;
+  position: sticky;
+  top: 0;
+  z-index: 10;
 }
 
-.back-btn {
-  width: 34px;
-  height: 34px;
+.trip-nav-back {
+  width: 38px;
+  height: 38px;
   border: none;
-  background: var(--card-bg);
+  background: rgba(255, 255, 255, 0.7);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
   border-radius: 50%;
-  font-size: 18px;
   cursor: pointer;
   display: flex;
   align-items: center;
   justify-content: center;
-  box-shadow: 0 1px 4px rgba(0,0,0,0.06);
+  color: var(--text);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
 }
 
-.header-title {
+.trip-nav-back:active {
+  transform: scale(0.92);
+}
+
+.trip-nav-title {
+  font-family: var(--font-display);
   font-size: 17px;
-  font-weight: 600;
+  font-weight: 700;
+  color: var(--text);
+  letter-spacing: 0.3px;
 }
 
-/* 草稿提示 */
-.draft-tip {
+.trip-nav-placeholder {
+  width: 38px;
+}
+
+/* ===== 草稿恢复提示（精致 toast） ===== */
+.draft-toast {
   display: flex;
   align-items: center;
-  justify-content: space-between;
-  padding: 10px 14px;
-  background: #fff8e1;
-  border-radius: 10px;
-  margin-bottom: 12px;
+  gap: 8px;
+  padding: 12px 16px;
+  background: linear-gradient(135deg, #FFF8EE 0%, #FFF3E0 100%);
+  border: 1px solid rgba(245, 166, 35, 0.2);
+  border-radius: var(--radius);
+  margin-bottom: 16px;
+  animation: slideDown 0.35s ease;
+}
+
+.draft-toast-icon {
+  flex-shrink: 0;
+}
+
+.draft-toast-text {
+  flex: 1;
   font-size: 13px;
-  color: #8d6e00;
+  font-weight: 500;
+  color: #B5791A;
 }
 
 .draft-discard {
   border: none;
-  background: none;
-  color: #b8860b;
-  font-size: 13px;
-  font-weight: 500;
+  background: rgba(245, 166, 35, 0.15);
+  color: #D4891A;
+  font-size: 12px;
+  font-weight: 600;
   cursor: pointer;
-  padding: 4px 8px;
+  padding: 4px 12px;
+  border-radius: 20px;
+  transition: background 0.2s;
 }
 
-/* 金额 */
+.draft-discard:active {
+  background: rgba(245, 166, 35, 0.25);
+}
+
+/* ===== 金额卡片 ===== */
 .amount-card {
-  padding: 20px 16px;
-  background: var(--card-bg);
-  border-radius: 14px;
-  margin-bottom: 12px;
-  box-shadow: 0 1px 4px rgba(0,0,0,0.04);
+  padding: 28px 20px 20px;
+  background: linear-gradient(145deg, #EBF6FC 0%, #D6EEF9 40%, #C8E6F5 100%);
+  border-radius: var(--radius-lg);
+  margin-bottom: 14px;
+  box-shadow: var(--shadow);
+  position: relative;
+  overflow: hidden;
+}
+
+.amount-card::before {
+  content: '';
+  position: absolute;
+  top: -30px;
+  right: -30px;
+  width: 120px;
+  height: 120px;
+  background: radial-gradient(circle, rgba(59, 155, 204, 0.12) 0%, transparent 70%);
+  border-radius: 50%;
+  pointer-events: none;
 }
 
 .foreign-amount-row {
   display: flex;
   align-items: baseline;
   margin-bottom: 8px;
+  position: relative;
 }
 
 .foreign-symbol {
-  font-size: 18px;
-  font-weight: 600;
-  margin-right: 6px;
-  color: var(--text-secondary);
+  font-family: var(--font-display);
+  font-size: 20px;
+  font-weight: 700;
+  margin-right: 8px;
+  color: var(--primary);
 }
 
 .foreign-input {
   flex: 1;
   border: none;
   outline: none;
-  font-size: 22px;
-  font-weight: 600;
+  font-family: var(--font-display);
+  font-size: 26px;
+  font-weight: 700;
   background: transparent;
-  color: var(--text-secondary);
+  color: var(--text);
 }
 
 .foreign-input::placeholder {
-  color: #ddd;
+  color: rgba(59, 155, 204, 0.35);
 }
 
 .foreign-code {
+  font-family: var(--font-display);
   font-size: 13px;
-  color: var(--text-secondary);
-  font-weight: 500;
-  margin-left: 6px;
+  color: var(--primary);
+  font-weight: 600;
+  margin-left: 8px;
+  background: rgba(255, 255, 255, 0.5);
+  padding: 2px 8px;
+  border-radius: 6px;
 }
 
 .cny-amount-row {
@@ -648,146 +712,181 @@ async function save() {
 }
 
 .cny-label {
+  font-family: var(--font-display);
   font-size: 13px;
-  color: var(--text-secondary);
-  margin-left: 6px;
+  color: var(--primary);
+  font-weight: 600;
+  margin-left: 8px;
+  background: rgba(255, 255, 255, 0.5);
+  padding: 2px 8px;
+  border-radius: 6px;
 }
 
 .rate-hint {
-  margin-top: 8px;
+  margin-top: 10px;
   font-size: 12px;
   color: var(--text-secondary);
   text-align: center;
+  font-weight: 500;
 }
 
 .currency {
-  font-size: 24px;
-  font-weight: 600;
-  margin-right: 6px;
+  font-family: var(--font-display);
+  font-size: 28px;
+  font-weight: 700;
+  margin-right: 8px;
+  color: var(--primary);
 }
 
 .amount-input {
   flex: 1;
   border: none;
   outline: none;
-  font-size: 36px;
-  font-weight: 700;
+  font-family: var(--font-display);
+  font-size: 42px;
+  font-weight: 800;
   background: transparent;
+  color: var(--text);
+  letter-spacing: 1px;
 }
 
 .amount-input::placeholder {
-  color: #ddd;
+  color: rgba(59, 155, 204, 0.3);
 }
 
-/* 卡片 */
+/* ===== 卡片通用 ===== */
 .card {
   background: var(--card-bg);
-  border-radius: 14px;
-  padding: 16px;
-  margin-bottom: 12px;
-  box-shadow: 0 1px 4px rgba(0,0,0,0.04);
+  border-radius: var(--radius);
+  padding: 18px;
+  margin-bottom: 14px;
+  box-shadow: var(--shadow);
 }
 
 .card-label {
-  font-size: 13px;
-  font-weight: 500;
+  font-family: var(--font-display);
+  font-size: 14px;
+  font-weight: 600;
   color: var(--text-secondary);
-  margin-bottom: 10px;
+  margin-bottom: 12px;
   display: flex;
   align-items: center;
   justify-content: space-between;
+  letter-spacing: 0.3px;
 }
 
 .toggle-all {
   border: none;
-  background: none;
+  background: rgba(59, 155, 204, 0.08);
   color: var(--primary);
-  font-size: 13px;
+  font-size: 12px;
+  font-weight: 600;
   cursor: pointer;
+  padding: 4px 14px;
+  border-radius: 20px;
+  transition: background 0.2s;
 }
 
-/* 选择器 */
+.toggle-all:active {
+  background: rgba(59, 155, 204, 0.18);
+}
+
+/* ===== 成员选择器 chip ===== */
 .picker-row {
   display: flex;
   flex-wrap: wrap;
-  gap: 8px;
+  gap: 10px;
 }
 
 .picker-chip {
   display: flex;
   align-items: center;
-  gap: 6px;
-  padding: 8px 14px;
-  border: 1.5px solid var(--border);
-  border-radius: 20px;
+  gap: 7px;
+  padding: 9px 16px;
+  border: 2px solid var(--border);
+  border-radius: 24px;
   font-size: 14px;
+  font-weight: 500;
   cursor: pointer;
-  transition: all 0.15s;
+  transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
   color: var(--text);
+  background: var(--card-bg);
+}
+
+.picker-chip:active {
+  transform: scale(0.95);
 }
 
 .picker-chip.active {
   color: white;
   border-color: transparent;
+  box-shadow: 0 3px 10px rgba(0, 0, 0, 0.12);
 }
 
 .chip-dot {
-  width: 8px;
-  height: 8px;
+  width: 10px;
+  height: 10px;
   border-radius: 50%;
   flex-shrink: 0;
+  box-shadow: 0 0 0 2px rgba(255, 255, 255, 0.3);
 }
 
-/* 分摊方式切换 */
+/* ===== 分摊方式切换（pill 形） ===== */
 .mode-switch {
   display: flex;
   background: var(--bg);
-  border-radius: 8px;
+  border-radius: 24px;
   padding: 3px;
-  margin-top: 12px;
+  margin-top: 14px;
+  box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.04);
 }
 
 .mode-btn {
   flex: 1;
-  padding: 8px;
+  padding: 10px;
   border: none;
   background: transparent;
-  border-radius: 6px;
+  border-radius: 20px;
   font-size: 13px;
-  font-weight: 500;
+  font-weight: 600;
   cursor: pointer;
   color: var(--text-secondary);
-  transition: all 0.2s;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 .mode-btn.active {
-  background: var(--card-bg);
-  color: var(--text);
-  box-shadow: 0 1px 3px rgba(0,0,0,0.08);
+  background: var(--primary-gradient);
+  color: white;
+  box-shadow: 0 2px 8px rgba(59, 155, 204, 0.3);
 }
 
-/* 均摊提示 */
+/* ===== 均摊提示 ===== */
 .split-hint {
-  margin-top: 10px;
+  margin-top: 12px;
   font-size: 13px;
+  font-weight: 500;
   color: var(--text-secondary);
   text-align: center;
-  padding: 8px;
-  background: var(--bg);
-  border-radius: 8px;
+  padding: 10px;
+  background: linear-gradient(135deg, rgba(59, 155, 204, 0.06) 0%, rgba(59, 155, 204, 0.02) 100%);
+  border-radius: 12px;
 }
 
-/* 自定义金额 */
+.split-hint-warning {
+  background: linear-gradient(135deg, #FFF5EB 0%, #FFF0E0 100%);
+}
+
+/* ===== 自定义金额 ===== */
 .custom-amounts {
-  margin-top: 12px;
+  margin-top: 14px;
 }
 
 .custom-row {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 8px 0;
-  border-bottom: 1px solid #f5f5f5;
+  padding: 10px 0;
+  border-bottom: 1px solid rgba(59, 155, 204, 0.06);
 }
 
 .custom-row:last-of-type {
@@ -797,14 +896,14 @@ async function save() {
 .custom-name {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 10px;
   font-size: 14px;
   font-weight: 500;
 }
 
 .custom-dot {
-  width: 8px;
-  height: 8px;
+  width: 10px;
+  height: 10px;
   border-radius: 50%;
   flex-shrink: 0;
 }
@@ -813,20 +912,23 @@ async function save() {
   display: flex;
   align-items: center;
   background: var(--bg);
-  border-radius: 8px;
-  padding: 6px 10px;
-  border: 1px solid transparent;
-  transition: border-color 0.2s;
+  border-radius: 12px;
+  padding: 8px 14px;
+  border: 2px solid transparent;
+  transition: all 0.2s;
 }
 
 .custom-input-wrap:focus-within {
   border-color: var(--primary);
+  box-shadow: 0 0 0 3px rgba(59, 155, 204, 0.1);
 }
 
 .custom-currency {
+  font-family: var(--font-display);
   font-size: 14px;
   color: var(--text-secondary);
-  margin-right: 4px;
+  margin-right: 6px;
+  font-weight: 600;
 }
 
 .custom-input {
@@ -834,9 +936,11 @@ async function save() {
   border: none;
   outline: none;
   background: transparent;
-  font-size: 15px;
-  font-weight: 600;
+  font-family: var(--font-display);
+  font-size: 16px;
+  font-weight: 700;
   text-align: right;
+  color: var(--text);
 }
 
 .custom-input::placeholder {
@@ -848,16 +952,18 @@ async function save() {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-top: 10px;
-  padding: 8px 12px;
-  background: var(--bg);
-  border-radius: 8px;
+  margin-top: 12px;
+  padding: 10px 16px;
+  background: linear-gradient(135deg, rgba(59, 155, 204, 0.06) 0%, rgba(59, 155, 204, 0.02) 100%);
+  border-radius: 12px;
   font-size: 13px;
+  font-weight: 500;
   color: var(--text-secondary);
 }
 
 .custom-summary span:last-child {
-  font-weight: 600;
+  font-weight: 700;
+  font-family: var(--font-display);
   color: var(--text);
 }
 
@@ -866,50 +972,70 @@ async function save() {
 }
 
 .custom-summary .under {
-  color: #faad14;
+  color: #F5A623;
 }
 
 .custom-warning {
-  margin-top: 6px;
+  margin-top: 8px;
   font-size: 12px;
-  color: #faad14;
-  padding-left: 2px;
+  color: #F5A623;
+  padding-left: 4px;
+  font-weight: 500;
 }
 
-/* 分类网格 */
+/* ===== 分类网格 ===== */
 .category-grid {
   display: grid;
   grid-template-columns: repeat(4, 1fr);
-  gap: 8px;
+  gap: 10px;
 }
 
 .cat-item {
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 4px;
-  padding: 12px 4px;
-  border-radius: 10px;
+  gap: 6px;
+  padding: 14px 4px;
+  border-radius: var(--radius);
   cursor: pointer;
-  transition: background 0.15s;
+  transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+  border: 2px solid transparent;
+  background: var(--bg);
+}
+
+.cat-item:active {
+  transform: scale(0.93);
 }
 
 .cat-item.active {
-  background: var(--primary-light);
+  background: linear-gradient(135deg, rgba(59, 155, 204, 0.1) 0%, rgba(59, 155, 204, 0.04) 100%);
+  border-color: var(--primary);
+  box-shadow: 0 2px 8px rgba(59, 155, 204, 0.12);
 }
 
 .cat-icon {
-  font-size: 24px;
+  font-size: 26px;
+  transition: transform 0.2s;
+}
+
+.cat-item.active .cat-icon {
+  transform: scale(1.1);
 }
 
 .cat-name {
   font-size: 11px;
+  font-weight: 500;
   color: var(--text-secondary);
 }
 
-/* 表单 */
+.cat-item.active .cat-name {
+  color: var(--primary);
+  font-weight: 600;
+}
+
+/* ===== 表单 ===== */
 .form-row {
-  margin-bottom: 10px;
+  margin-bottom: 12px;
 }
 
 .form-row:last-child {
@@ -917,27 +1043,53 @@ async function save() {
 }
 
 .form-label {
-  font-size: 13px;
-  font-weight: 500;
+  font-family: var(--font-display);
+  font-size: 14px;
+  font-weight: 600;
   color: var(--text-secondary);
-  margin-bottom: 6px;
+  margin-bottom: 8px;
   display: block;
+  letter-spacing: 0.3px;
 }
 
-/* 图片上传 */
+.input {
+  width: 100%;
+  padding: 12px 16px;
+  border: 2px solid var(--border);
+  border-radius: 12px;
+  font-size: 15px;
+  font-family: var(--font-body);
+  background: var(--bg);
+  color: var(--text);
+  outline: none;
+  transition: border-color 0.2s, box-shadow 0.2s;
+  box-sizing: border-box;
+}
+
+.input:focus {
+  border-color: var(--primary);
+  box-shadow: 0 0 0 3px rgba(59, 155, 204, 0.1);
+}
+
+.input::placeholder {
+  color: #bbb;
+}
+
+/* ===== 图片上传 ===== */
 .image-grid {
   display: flex;
   flex-wrap: wrap;
-  gap: 8px;
-  margin-top: 8px;
+  gap: 10px;
+  margin-top: 10px;
 }
 
 .image-item {
   position: relative;
-  width: 80px;
-  height: 80px;
-  border-radius: 10px;
+  width: 84px;
+  height: 84px;
+  border-radius: var(--radius);
   overflow: hidden;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
 }
 
 .image-preview {
@@ -945,42 +1097,56 @@ async function save() {
   height: 100%;
   object-fit: cover;
   cursor: pointer;
+  transition: transform 0.2s;
+}
+
+.image-preview:active {
+  transform: scale(1.03);
 }
 
 .image-remove {
   position: absolute;
-  top: 2px;
-  right: 2px;
-  width: 20px;
-  height: 20px;
+  top: 4px;
+  right: 4px;
+  width: 24px;
+  height: 24px;
   border: none;
-  background: rgba(0,0,0,0.5);
+  background: rgba(0, 0, 0, 0.45);
+  backdrop-filter: blur(4px);
   color: white;
   border-radius: 50%;
-  font-size: 14px;
+  font-size: 12px;
   cursor: pointer;
   display: flex;
   align-items: center;
   justify-content: center;
   line-height: 1;
+  transition: background 0.2s;
+}
+
+.image-remove:active {
+  background: rgba(0, 0, 0, 0.65);
 }
 
 .image-add {
-  width: 80px;
-  height: 80px;
-  border: 2px dashed var(--border);
-  border-radius: 10px;
+  width: 84px;
+  height: 84px;
+  border: 2px dashed rgba(59, 155, 204, 0.3);
+  border-radius: var(--radius);
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: 2px;
+  gap: 4px;
   cursor: pointer;
-  transition: border-color 0.15s;
+  transition: all 0.2s;
+  background: rgba(59, 155, 204, 0.03);
 }
 
 .image-add:active {
   border-color: var(--primary);
+  background: rgba(59, 155, 204, 0.08);
+  transform: scale(0.95);
 }
 
 .image-input {
@@ -988,45 +1154,79 @@ async function save() {
 }
 
 .image-add-icon {
-  font-size: 22px;
+  opacity: 0.6;
 }
 
 .image-add-text {
   font-size: 11px;
   color: var(--text-secondary);
+  font-weight: 500;
 }
 
-/* 支付方式 */
+/* ===== 支付方式 ===== */
 .pay-method-grid {
   display: flex;
   flex-wrap: wrap;
-  gap: 8px;
-  margin-top: 8px;
+  gap: 10px;
+  margin-top: 10px;
 }
 
 .pm-chip {
   display: flex;
   align-items: center;
-  gap: 4px;
-  padding: 6px 12px;
-  border: 1.5px solid var(--border);
-  border-radius: 16px;
+  gap: 5px;
+  padding: 8px 14px;
+  border: 2px solid var(--border);
+  border-radius: 20px;
   font-size: 13px;
+  font-weight: 500;
   cursor: pointer;
-  transition: all 0.15s;
+  transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+  background: var(--card-bg);
+}
+
+.pm-chip:active {
+  transform: scale(0.95);
 }
 
 .pm-chip.active {
   border-color: var(--primary);
-  background: var(--primary-light);
+  background: linear-gradient(135deg, rgba(59, 155, 204, 0.1) 0%, rgba(59, 155, 204, 0.04) 100%);
   color: var(--primary);
-  font-weight: 500;
+  font-weight: 600;
+  box-shadow: 0 2px 8px rgba(59, 155, 204, 0.12);
 }
 
+/* ===== 保存按钮 ===== */
 .save-btn {
-  margin-top: 16px;
-  padding: 14px;
+  margin-top: 20px;
+  padding: 16px;
   font-size: 16px;
-  border-radius: 12px;
+  font-weight: 700;
+  font-family: var(--font-display);
+  border-radius: var(--radius);
+  background: var(--primary-gradient);
+  color: white;
+  box-shadow: 0 4px 12px rgba(59, 155, 204, 0.3);
+  border: none;
+  letter-spacing: 0.5px;
+  transition: all 0.25s ease;
+}
+
+.save-btn:active {
+  transform: scale(0.97);
+  box-shadow: 0 2px 8px rgba(59, 155, 204, 0.25);
+}
+
+/* ===== 动画 ===== */
+@keyframes slideDown {
+  from {
+    opacity: 0;
+    transform: translateY(-12px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 </style>

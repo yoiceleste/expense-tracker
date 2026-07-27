@@ -1,12 +1,19 @@
 <template>
-  <div class="spending-page">
-    <div class="detail-header">
-      <button class="back-btn" @click="$router.back()">←</button>
-      <span class="header-title">消费结构</span>
-      <span style="width:34px"></span>
+  <div class="spending-page trip-animate-in">
+    <!-- 顶部渐变导航区 -->
+    <div class="spending-hero trip-hero-bg">
+      <div class="trip-nav">
+        <button class="trip-nav-back" @click="$router.back()">
+          <svg width="18" height="18" viewBox="0 0 18 18" fill="none">
+            <path d="M12 3L7 9L12 15" stroke="var(--text)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+        </button>
+        <div class="trip-nav-title">消费结构</div>
+        <div class="trip-nav-placeholder"></div>
+      </div>
     </div>
 
-    <!-- 成员选择 -->
+    <!-- 成员选择 pill tabs -->
     <div class="member-tabs">
       <div
         v-for="m in memberSpendings"
@@ -22,7 +29,7 @@
     </div>
 
     <!-- 当前成员概览 -->
-    <div v-if="currentMember" class="overview-card" :style="{ borderTop: `3px solid ${currentMember.color}` }">
+    <div v-if="currentMember" class="overview-card" :style="{ borderTop: `4px solid ${currentMember.color}` }">
       <div class="overview-name">{{ currentMember.name }} 的消费</div>
       <div class="overview-total">{{ currencySymbol }}{{ formatMoney(currentMember.total) }}</div>
       <div v-if="isForeignCurrency && currentMemberCny > 0" class="overview-cny">≈ ¥{{ formatMoney(currentMemberCny) }} CNY</div>
@@ -59,7 +66,12 @@
       </div>
 
       <div v-if="currentMember.categories.length === 0" class="no-data">
-        暂无消费记录
+        <svg class="no-data-icon" width="48" height="48" viewBox="0 0 48 48" fill="none">
+          <circle cx="24" cy="24" r="20" fill="var(--primary-light)" opacity="0.4"/>
+          <path d="M18 24H30" stroke="var(--primary)" stroke-width="2" stroke-linecap="round" opacity="0.4"/>
+          <path d="M24 18V30" stroke="var(--primary)" stroke-width="2" stroke-linecap="round" opacity="0.4"/>
+        </svg>
+        <div class="no-data-text">暂无消费记录</div>
       </div>
     </div>
 
@@ -98,7 +110,7 @@
           {{ m.name }}
         </div>
       </div>
-      <div v-for="cat in allCategories" :key="cat.id" class="matrix-row">
+      <div v-for="(cat, catIdx) in allCategories" :key="cat.id" class="matrix-row" :class="{ 'matrix-row-alt': catIdx % 2 === 0 }">
         <div class="matrix-cell label-cell">
           {{ cat.icon }} {{ cat.name }}
         </div>
@@ -167,62 +179,59 @@ function getCatAmount(member: MemberSpending, catId: string): string {
 </script>
 
 <style scoped>
+/* ===== 页面容器 ===== */
 .spending-page {
-  padding: 0 16px 40px;
+  padding: 0 0 48px;
+  min-height: 100vh;
+  background: var(--bg);
+  position: relative;
 }
 
-.detail-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 16px 0;
+/* ===== 顶部 Hero 导航区 ===== */
+.spending-hero {
+  padding: 0 20px 16px;
+  border-radius: 0 0 var(--radius-xl) var(--radius-xl);
 }
 
-.back-btn {
-  width: 34px;
-  height: 34px;
-  border: none;
-  background: var(--card-bg);
-  border-radius: 50%;
-  font-size: 18px;
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  box-shadow: 0 1px 4px rgba(0,0,0,0.06);
-}
-
-.header-title {
-  font-size: 17px;
-  font-weight: 600;
-}
-
-/* 成员切换 */
+/* ===== 成员 pill tabs ===== */
 .member-tabs {
   display: flex;
   gap: 8px;
   overflow-x: auto;
-  padding-bottom: 4px;
-  margin-bottom: 16px;
+  padding: 0 20px 6px;
+  margin-bottom: 18px;
+  scrollbar-width: none;
+}
+
+.member-tabs::-webkit-scrollbar {
+  display: none;
 }
 
 .member-tab {
   display: flex;
   align-items: center;
-  gap: 6px;
-  padding: 8px 14px;
-  border: 1.5px solid var(--border);
-  border-radius: 20px;
+  gap: 7px;
+  padding: 9px 16px;
+  border: 2px solid var(--border);
+  border-radius: var(--radius-full);
+  font-family: var(--font-display);
   font-size: 14px;
-  font-weight: 500;
+  font-weight: 600;
   cursor: pointer;
   flex-shrink: 0;
-  transition: all 0.15s;
+  transition: all 0.25s cubic-bezier(0.22, 1, 0.36, 1);
   color: var(--text-secondary);
+  background: var(--card-bg);
+}
+
+.member-tab:active {
+  transform: scale(0.95);
 }
 
 .member-tab.active {
   border-color: currentColor;
+  box-shadow: 0 2px 12px rgba(59, 155, 204, 0.12);
+  background: var(--card-bg-soft);
 }
 
 .tab-dot {
@@ -230,68 +239,107 @@ function getCatAmount(member: MemberSpending, catId: string): string {
   height: 8px;
   border-radius: 50%;
   flex-shrink: 0;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.12);
 }
 
-/* 概览 */
+/* ===== 成员概览卡片（顶部色条装饰） ===== */
 .overview-card {
   background: var(--card-bg);
-  border-radius: 14px;
-  padding: 20px;
-  margin-bottom: 16px;
-  box-shadow: 0 1px 4px rgba(0,0,0,0.04);
+  border-radius: var(--radius-lg);
+  padding: 24px 22px 22px;
+  margin: 0 16px 18px;
+  box-shadow: var(--shadow);
+  position: relative;
+  overflow: hidden;
+}
+
+/* 卡片内部右上角装饰光晕 */
+.overview-card::after {
+  content: '';
+  position: absolute;
+  top: -24px;
+  right: -24px;
+  width: 90px;
+  height: 90px;
+  background: radial-gradient(circle, rgba(59, 155, 204, 0.06) 0%, transparent 70%);
+  border-radius: 50%;
+  pointer-events: none;
 }
 
 .overview-name {
   font-size: 14px;
   color: var(--text-secondary);
-  margin-bottom: 4px;
+  margin-bottom: 6px;
+  font-weight: 500;
 }
 
 .overview-total {
-  font-size: 32px;
-  font-weight: 700;
+  font-family: var(--font-display);
+  font-size: 36px;
+  font-weight: 800;
+  color: var(--text);
+  letter-spacing: -0.5px;
+  line-height: 1.1;
 }
 
 .overview-cny {
   font-size: 13px;
   color: var(--text-secondary);
-  margin-top: 4px;
+  margin-top: 6px;
+  font-weight: 500;
 }
 
-/* 分类列表 */
+/* ===== 分类明细列表 ===== */
 .category-list {
   background: var(--card-bg);
-  border-radius: 14px;
-  padding: 4px 16px;
-  box-shadow: 0 1px 4px rgba(0,0,0,0.04);
+  border-radius: var(--radius-lg);
+  padding: 4px 18px;
+  margin: 0 16px 18px;
+  box-shadow: var(--shadow);
 }
 
 .cat-row {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 12px 0;
-  border-bottom: 1px solid #f5f5f5;
+  padding: 14px 0;
+  position: relative;
 }
 
-.cat-row:last-child {
-  border-bottom: none;
+.cat-row:not(:last-child)::after {
+  content: '';
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 1px;
+  background: linear-gradient(to right, transparent, rgba(59, 155, 204, 0.08), transparent);
 }
 
 .cat-left {
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: 12px;
   min-width: 80px;
 }
 
 .cat-icon {
-  font-size: 20px;
+  font-size: 22px;
+  width: 40px;
+  height: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--primary-gradient-soft);
+  border-radius: var(--radius);
+  flex-shrink: 0;
 }
 
 .cat-name {
+  font-family: var(--font-display);
   font-size: 14px;
-  font-weight: 500;
+  font-weight: 600;
+  color: var(--text);
 }
 
 .cat-right {
@@ -307,83 +355,113 @@ function getCatAmount(member: MemberSpending, catId: string): string {
 }
 
 .cat-bar {
-  height: 6px;
-  background: #f0f0f0;
-  border-radius: 3px;
+  height: 7px;
+  background: var(--bg);
+  border-radius: var(--radius-full);
   overflow: hidden;
 }
 
 .cat-bar-fill {
   height: 100%;
-  border-radius: 3px;
-  transition: width 0.3s;
+  border-radius: var(--radius-full);
+  transition: width 0.4s cubic-bezier(0.22, 1, 0.36, 1);
 }
 
 .cat-amount {
+  font-family: var(--font-display);
   font-size: 14px;
-  font-weight: 600;
+  font-weight: 700;
   min-width: 60px;
   text-align: right;
+  color: var(--text);
 }
 
 .cat-percent {
   font-size: 12px;
-  color: var(--text-secondary);
+  color: var(--text-tertiary);
   min-width: 36px;
   text-align: right;
+  font-weight: 500;
 }
 
+/* ===== 空状态 ===== */
 .no-data {
   text-align: center;
-  padding: 20px;
-  color: var(--text-secondary);
-  font-size: 14px;
+  padding: 32px 20px;
 }
 
-/* 全员对比 */
-.section-title {
-  font-size: 15px;
-  font-weight: 600;
+.no-data-icon {
   margin-bottom: 10px;
-  color: var(--text-secondary);
+  display: block;
+  margin-left: auto;
+  margin-right: auto;
 }
 
+.no-data-text {
+  font-family: var(--font-display);
+  font-size: 14px;
+  color: var(--text-tertiary);
+  font-weight: 600;
+}
+
+/* ===== Section 标题 ===== */
+.section-title {
+  font-family: var(--font-display);
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--text-secondary);
+  letter-spacing: 0.02em;
+  padding: 0 20px;
+  margin-bottom: 12px;
+}
+
+/* ===== 全员对比卡片 ===== */
 .compare-card {
   background: var(--card-bg);
-  border-radius: 14px;
-  padding: 4px 16px;
-  box-shadow: 0 1px 4px rgba(0,0,0,0.04);
+  border-radius: var(--radius-lg);
+  padding: 6px 18px;
+  margin: 0 16px 18px;
+  box-shadow: var(--shadow);
 }
 
 .compare-row {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 10px 0;
-  border-bottom: 1px solid #f5f5f5;
+  padding: 12px 0;
+  position: relative;
 }
 
-.compare-row:last-child {
-  border-bottom: none;
+.compare-row:not(:last-child)::after {
+  content: '';
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 1px;
+  background: linear-gradient(to right, transparent, rgba(59, 155, 204, 0.08), transparent);
 }
 
 .compare-left {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 10px;
   min-width: 60px;
 }
 
 .compare-dot {
-  width: 8px;
-  height: 8px;
+  width: 10px;
+  height: 10px;
   border-radius: 50%;
   flex-shrink: 0;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
 }
 
 .compare-name {
+  font-family: var(--font-display);
   font-size: 14px;
-  font-weight: 500;
+  font-weight: 600;
+  color: var(--text);
 }
 
 .compare-right {
@@ -400,73 +478,92 @@ function getCatAmount(member: MemberSpending, catId: string): string {
 
 .compare-bar {
   height: 8px;
-  background: #f0f0f0;
-  border-radius: 4px;
+  background: var(--bg);
+  border-radius: var(--radius-full);
   overflow: hidden;
 }
 
 .compare-bar-fill {
   height: 100%;
-  border-radius: 4px;
-  transition: width 0.3s;
+  border-radius: var(--radius-full);
+  transition: width 0.4s cubic-bezier(0.22, 1, 0.36, 1);
 }
 
 .compare-amount {
+  font-family: var(--font-display);
   font-size: 14px;
-  font-weight: 600;
+  font-weight: 700;
   min-width: 60px;
   text-align: right;
+  color: var(--text);
 }
 
-/* 矩阵 */
+/* ===== 分类对比矩阵 ===== */
 .matrix-card {
   background: var(--card-bg);
-  border-radius: 14px;
-  padding: 12px;
-  box-shadow: 0 1px 4px rgba(0,0,0,0.04);
+  border-radius: var(--radius-lg);
+  padding: 14px;
+  margin: 0 16px 24px;
+  box-shadow: var(--shadow);
   overflow-x: auto;
 }
 
 .matrix-header {
   display: flex;
-  border-bottom: 1px solid #f0f0f0;
-  padding-bottom: 8px;
+  border-bottom: 2px solid var(--border-light);
+  padding-bottom: 10px;
   margin-bottom: 4px;
 }
 
 .matrix-row {
   display: flex;
-  padding: 6px 0;
+  padding: 10px 0;
+  border-bottom: 1px solid var(--border-light);
+  transition: background 0.15s ease;
+}
+
+.matrix-row:last-child {
+  border-bottom: none;
+}
+
+.matrix-row-alt {
+  background: rgba(59, 155, 204, 0.02);
+  border-radius: 8px;
 }
 
 .matrix-cell {
-  min-width: 70px;
+  min-width: 72px;
   font-size: 12px;
   display: flex;
   align-items: center;
-  gap: 4px;
+  gap: 5px;
 }
 
 .header-cell {
   justify-content: center;
-  font-weight: 500;
+  font-family: var(--font-display);
+  font-weight: 700;
+  color: var(--text);
 }
 
 .matrix-dot {
-  width: 6px;
-  height: 6px;
+  width: 7px;
+  height: 7px;
   border-radius: 50%;
   flex-shrink: 0;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
 }
 
 .label-cell {
-  font-weight: 500;
+  font-family: var(--font-display);
+  font-weight: 600;
   color: var(--text-secondary);
 }
 
 .value-cell {
   justify-content: center;
-  font-weight: 500;
+  font-family: var(--font-display);
+  font-weight: 600;
   color: var(--text);
 }
 </style>

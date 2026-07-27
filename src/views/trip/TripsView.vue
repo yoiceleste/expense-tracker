@@ -1,105 +1,157 @@
 <template>
-  <div class="trips-page">
-    <div class="page-header">
-      <span class="page-title">旅行分账</span>
+  <div class="trips-page trip-page">
+    <!-- 顶部渐变 Hero -->
+    <div class="trips-hero trip-hero-bg">
+      <div class="hero-header">
+        <div>
+          <h1 class="hero-title">旅行分账</h1>
+          <p class="hero-subtitle">轻松记录，快乐出行</p>
+        </div>
+        <!-- 装饰飞机 SVG -->
+        <svg class="hero-plane" width="64" height="64" viewBox="0 0 64 64" fill="none">
+          <path d="M8 32C8 32 20 24 32 24C44 24 56 32 56 32C56 32 44 40 32 40C20 40 8 32 8 32Z" fill="rgba(255,255,255,0.25)"/>
+          <path d="M32 20L36 28H28L32 20Z" fill="rgba(255,255,255,0.4)"/>
+          <circle cx="32" cy="32" r="3" fill="rgba(255,255,255,0.5)"/>
+        </svg>
+      </div>
     </div>
 
-    <div v-if="store.trips.length === 0" class="empty-state">
-      <div class="icon">✈️</div>
-      <div class="text">还没有旅行计划</div>
-      <div class="sub-text">创建一个旅行，轻松管理多人花销</div>
-    </div>
+    <!-- 旅行列表 -->
+    <div class="trips-content">
+      <!-- 空状态 -->
+      <div v-if="store.trips.length === 0" class="trip-empty trip-animate-in">
+        <div class="trip-empty-icon">
+          <svg width="80" height="80" viewBox="0 0 80 80" fill="none">
+            <circle cx="40" cy="40" r="36" fill="var(--primary-light)" opacity="0.6"/>
+            <path d="M28 48L40 24L52 48" stroke="var(--primary)" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
+            <circle cx="40" cy="34" r="3" fill="var(--accent)"/>
+            <path d="M24 48H56" stroke="var(--primary)" stroke-width="2" stroke-linecap="round" opacity="0.4"/>
+          </svg>
+        </div>
+        <div class="trip-empty-title">还没有旅行计划</div>
+        <div class="trip-empty-desc">点击下方按钮创建一个旅行<br>轻松管理多人花销</div>
+      </div>
 
-    <div
-      v-for="trip in store.trips"
-      :key="trip.id"
-      class="trip-card"
-      @click="$router.push(`/trip/${trip.id}`)"
-    >
-      <div class="trip-top">
-        <div class="trip-info">
-          <div class="trip-name">{{ trip.name }}</div>
-          <div class="trip-meta">
-            <template v-if="trip.startDate">{{ trip.startDate }}</template>
-            <template v-if="trip.startDate && trip.endDate"> ~ {{ trip.endDate }}</template>
-            <template v-if="!trip.startDate">创建于 {{ new Date(trip.createdAt).toLocaleDateString() }}</template>
-            · {{ trip.members.length }}人 · {{ trip.expenses.length }}笔
+      <!-- 旅行卡片 -->
+      <div
+        v-for="(trip, idx) in store.trips"
+        :key="trip.id"
+        class="trip-card trip-animate-in"
+        :style="{ animationDelay: `${idx * 0.08}s` }"
+        @click="$router.push(`/trip/${trip.id}`)"
+      >
+        <!-- 卡片装饰渐变条 -->
+        <div class="trip-card-accent"></div>
+        <div class="trip-card-body">
+          <div class="trip-top">
+            <div class="trip-info">
+              <div class="trip-name">{{ trip.name }}</div>
+              <div class="trip-meta">
+                <template v-if="trip.startDate">{{ formatDateShort(trip.startDate) }}</template>
+                <template v-if="trip.startDate && trip.endDate"> — {{ formatDateShort(trip.endDate) }}</template>
+                <template v-if="!trip.startDate">创建于 {{ new Date(trip.createdAt).toLocaleDateString() }}</template>
+                <span class="trip-meta-dot">·</span>
+                <span>{{ trip.members.length }} 人</span>
+                <span class="trip-meta-dot">·</span>
+                <span>{{ trip.expenses.length }} 笔</span>
+              </div>
+            </div>
+            <div class="trip-amount-wrap">
+              <div class="trip-amount">{{ formatMoney(getTripTotal(trip)) }}</div>
+              <div class="trip-currency">{{ getCurrencySymbol(trip.currency) }}</div>
+            </div>
+          </div>
+          <div class="trip-members">
+            <div
+              v-for="(member, mi) in trip.members.slice(0, 6)"
+              :key="member.id"
+              class="avatar"
+              :style="{ background: member.color, marginLeft: mi === 0 ? '0' : '-6px' }"
+            >
+              {{ member.name[0] }}
+            </div>
+            <div v-if="trip.members.length > 6" class="avatar more" :style="{ marginLeft: '-6px' }">
+              +{{ trip.members.length - 6 }}
+            </div>
           </div>
         </div>
-        <div class="trip-amount">¥{{ formatMoney(getTripTotal(trip)) }}</div>
-      </div>
-      <div class="trip-members">
-        <div
-          v-for="member in trip.members.slice(0, 6)"
-          :key="member.id"
-          class="avatar"
-          :style="{ background: member.color }"
-        >
-          {{ member.name[0] }}
-        </div>
-        <div v-if="trip.members.length > 6" class="avatar more">
-          +{{ trip.members.length - 6 }}
-        </div>
       </div>
     </div>
 
-    <!-- 设置昵称弹窗（创建旅行后弹出） -->
-    <div v-if="showNickname" class="modal-overlay" @click.self="showNickname = false">
-      <div class="modal">
-        <div class="modal-title">✈️ {{ pendingTripName }}</div>
-        <div class="nickname-hint">设置你在旅行中的昵称</div>
-        <div class="form-row">
-          <input
-            ref="nicknameInput"
-            v-model="creatorNickname"
-            class="input nickname-input"
-            placeholder="输入你的昵称"
-            maxlength="10"
-            @keyup.enter="confirmNickname"
-          />
-        </div>
-        <div class="modal-actions">
-          <button class="btn btn-ghost" @click="showNickname = false">取消</button>
-          <button class="btn btn-primary" :disabled="!creatorNickname.trim()" @click="confirmNickname">
-            进入旅行
-          </button>
+    <!-- 设置昵称弹窗 -->
+    <Transition name="modal-up">
+      <div v-if="showNickname" class="modal-overlay" @click.self="showNickname = false">
+        <div class="modal">
+          <div class="modal-icon-wrap">
+            <svg width="40" height="40" viewBox="0 0 40 40" fill="none">
+              <circle cx="20" cy="20" r="18" fill="var(--primary-light)"/>
+              <path d="M12 22L20 14L28 22" stroke="var(--primary)" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
+              <circle cx="20" cy="19" r="2.5" fill="var(--accent)"/>
+            </svg>
+          </div>
+          <div class="modal-title">{{ pendingTripName }}</div>
+          <div class="nickname-hint">设置你在旅行中的昵称</div>
+          <div class="form-row">
+            <input
+              ref="nicknameInput"
+              v-model="creatorNickname"
+              class="input nickname-input"
+              placeholder="你的昵称"
+              maxlength="10"
+              @keyup.enter="confirmNickname"
+            />
+          </div>
+          <div class="modal-actions">
+            <button class="btn btn-ghost" @click="showNickname = false">取消</button>
+            <button class="btn btn-primary" :disabled="!creatorNickname.trim()" @click="confirmNickname">
+              进入旅行
+            </button>
+          </div>
         </div>
       </div>
-    </div>
+    </Transition>
 
     <!-- 新建旅行弹窗 -->
     <button class="fab" style="display:none" @click="showCreate = true">+</button>
 
-    <div v-if="showCreate" class="modal-overlay" @click.self="showCreate = false">
-      <div class="modal">
-        <div class="modal-title">新建旅行</div>
-        <div class="form-row">
-          <input v-model="tripName" class="input" placeholder="旅行名称，如：三亚之旅" />
-        </div>
-        <div class="form-row">
-          <label class="form-label">当地货币</label>
-          <select v-model="selectedCurrency" class="input currency-select">
-            <option v-for="cur in popularCurrencies" :key="cur.code" :value="cur.code">
-              {{ cur.flag }} {{ cur.name }} ({{ cur.code }})
-            </option>
-          </select>
-        </div>
-        <div class="form-row date-row">
-          <div class="date-field">
-            <label class="form-label">开始日期</label>
-            <input v-model="startDate" type="date" class="input" />
+    <Transition name="modal-up">
+      <div v-if="showCreate" class="modal-overlay" @click.self="showCreate = false">
+        <div class="modal">
+          <div class="modal-icon-wrap">
+            <svg width="40" height="40" viewBox="0 0 40 40" fill="none">
+              <circle cx="20" cy="20" r="18" fill="var(--primary-light)"/>
+              <path d="M14 26L20 14L26 26" stroke="var(--primary)" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
           </div>
-          <div class="date-field">
-            <label class="form-label">结束日期</label>
-            <input v-model="endDate" type="date" class="input" />
+          <div class="modal-title">新建旅行</div>
+          <div class="form-row">
+            <input v-model="tripName" class="input" placeholder="旅行名称，如：三亚之旅" />
           </div>
-        </div>
-        <div class="modal-actions">
-          <button class="btn btn-ghost" @click="showCreate = false">取消</button>
-          <button class="btn btn-primary" @click="createTrip">创建</button>
+          <div class="form-row">
+            <label class="form-label">当地货币</label>
+            <select v-model="selectedCurrency" class="input currency-select">
+              <option v-for="cur in popularCurrencies" :key="cur.code" :value="cur.code">
+                {{ cur.flag }} {{ cur.name }} ({{ cur.code }})
+              </option>
+            </select>
+          </div>
+          <div class="form-row date-row">
+            <div class="date-field">
+              <label class="form-label">开始日期</label>
+              <input v-model="startDate" type="date" class="input" />
+            </div>
+            <div class="date-field">
+              <label class="form-label">结束日期</label>
+              <input v-model="endDate" type="date" class="input" />
+            </div>
+          </div>
+          <div class="modal-actions">
+            <button class="btn btn-ghost" @click="showCreate = false">取消</button>
+            <button class="btn btn-primary" @click="createTrip">创建旅行</button>
+          </div>
         </div>
       </div>
-    </div>
+    </Transition>
   </div>
 </template>
 
@@ -126,31 +178,34 @@ const selectedCurrency = ref('CNY')
 const startDate = ref('')
 const endDate = ref('')
 
-// 打开创建弹窗
 function openCreateModal() {
   showCreate.value = true
-  // 清除 query 参数
   if (route.query.create) {
     router.replace({ path: '/trips', query: {} })
   }
 }
 
-// 监听底部导航 + 按钮传来的 create 参数
 watch(() => route.query.create, (val) => {
-  if (val === '1') {
-    openCreateModal()
-  }
+  if (val === '1') openCreateModal()
 })
 
-// 组件挂载时也检查 query 参数（处理直接导航到 /trips?create=1 的情况）
 onMounted(() => {
-  if (route.query.create === '1') {
-    openCreateModal()
-  }
+  if (route.query.create === '1') openCreateModal()
 })
 
 function getTripTotal(trip: Trip) {
   return trip.expenses.reduce((s, e) => s + e.amount, 0)
+}
+
+function getCurrencySymbol(code: string) {
+  const info = popularCurrencies.find(c => c.code === code)
+  return info ? `${info.flag} ${code}` : code
+}
+
+function formatDateShort(date: string) {
+  if (!date) return ''
+  const d = new Date(date + 'T00:00:00')
+  return `${d.getMonth() + 1}/${d.getDate()}`
 }
 
 async function createTrip() {
@@ -164,7 +219,6 @@ async function createTrip() {
   startDate.value = ''
   endDate.value = ''
 
-  // 弹出昵称设置弹窗
   pendingTripId.value = trip.id
   pendingTripName.value = trip.name
   creatorNickname.value = ''
@@ -178,12 +232,10 @@ async function confirmNickname() {
   const name = creatorNickname.value.trim()
   if (!name) return
 
-  // 加入旅行
   await store.joinTrip(pendingTripId.value, name)
   await store.loadTripById(pendingTripId.value)
   showNickname.value = false
 
-  // 复制分享链接
   const link = store.getShareLink(store.getTripById(pendingTripId.value)!)
   try {
     await navigator.clipboard.writeText(link)
@@ -198,43 +250,79 @@ async function confirmNickname() {
 
 <style scoped>
 .trips-page {
-  padding: 0 16px;
+  padding: 0;
 }
 
-.empty-state {
-  padding: 60px 20px;
-  text-align: center;
+/* ===== Hero 头部 ===== */
+.trips-hero {
+  padding: 24px 20px 32px;
 }
 
-.empty-state .icon {
-  font-size: 56px;
-  margin-bottom: 16px;
+.hero-header {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  position: relative;
+  z-index: 1;
 }
 
-.empty-state .text {
-  font-size: 17px;
-  font-weight: 600;
+.hero-title {
+  font-family: var(--font-display);
+  font-size: 28px;
+  font-weight: 800;
   color: var(--text);
-  margin-bottom: 6px;
+  letter-spacing: -0.02em;
+  line-height: 1.1;
+  margin-bottom: 4px;
 }
 
-.empty-state .sub-text {
-  font-size: 13px;
+.hero-subtitle {
+  font-size: 14px;
   color: var(--text-secondary);
+  font-weight: 400;
 }
 
+.hero-plane {
+  opacity: 0.6;
+  flex-shrink: 0;
+  animation: floatPlane 4s ease-in-out infinite;
+}
+
+@keyframes floatPlane {
+  0%, 100% { transform: translateY(0) rotate(-5deg); }
+  50% { transform: translateY(-6px) rotate(0deg); }
+}
+
+/* ===== 内容区 ===== */
+.trips-content {
+  padding: 0 16px;
+  margin-top: -8px;
+}
+
+/* ===== 旅行卡片 ===== */
 .trip-card {
+  position: relative;
   background: var(--card-bg);
-  border-radius: 14px;
-  padding: 18px;
-  margin-bottom: 12px;
-  box-shadow: 0 1px 4px rgba(0,0,0,0.04);
+  border-radius: var(--radius-lg);
+  margin-bottom: 14px;
+  overflow: hidden;
   cursor: pointer;
-  transition: transform 0.15s;
+  box-shadow: var(--shadow);
+  transition: transform 0.2s cubic-bezier(0.34, 1.56, 0.64, 1), box-shadow 0.2s ease;
 }
 
 .trip-card:active {
   transform: scale(0.98);
+  box-shadow: var(--shadow);
+}
+
+.trip-card-accent {
+  height: 4px;
+  background: var(--primary-gradient);
+}
+
+.trip-card-body {
+  padding: 16px 18px 18px;
 }
 
 .trip-top {
@@ -245,55 +333,88 @@ async function confirmNickname() {
 }
 
 .trip-name {
-  font-size: 17px;
-  font-weight: 600;
+  font-family: var(--font-display);
+  font-size: 18px;
+  font-weight: 700;
+  color: var(--text);
   margin-bottom: 4px;
+  letter-spacing: -0.01em;
 }
 
 .trip-meta {
   font-size: 13px;
   color: var(--text-secondary);
+  font-weight: 400;
+}
+
+.trip-meta-dot {
+  margin: 0 4px;
+  opacity: 0.5;
+}
+
+.trip-amount-wrap {
+  text-align: right;
+  flex-shrink: 0;
+  margin-left: 12px;
 }
 
 .trip-amount {
-  font-size: 20px;
-  font-weight: 700;
-  color: var(--primary);
+  font-family: var(--font-display);
+  font-size: 22px;
+  font-weight: 800;
+  color: var(--text);
+  line-height: 1.1;
 }
 
+.trip-currency {
+  font-size: 11px;
+  color: var(--text-secondary);
+  font-weight: 500;
+  margin-top: 2px;
+}
+
+/* ===== 成员头像 ===== */
 .trip-members {
   display: flex;
-  gap: 6px;
+  align-items: center;
 }
 
 .avatar {
-  width: 30px;
-  height: 30px;
+  width: 32px;
+  height: 32px;
   border-radius: 50%;
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 12px;
-  font-weight: 600;
+  font-size: 13px;
+  font-weight: 700;
   color: white;
+  border: 2px solid var(--card-bg);
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.08);
+  transition: transform 0.15s ease;
+  font-family: var(--font-display);
 }
 
 .avatar.more {
   background: var(--bg);
   color: var(--text-secondary);
   font-size: 11px;
+  font-weight: 600;
+  border: 2px solid var(--card-bg);
 }
 
-/* FAB */
+/* ===== FAB ===== */
 .fab {
   display: none;
 }
 
-/* 弹窗 */
+/* ===== 弹窗 ===== */
 .modal-overlay {
   position: fixed;
   inset: 0;
-  background: rgba(0,0,0,0.3);
+  background: rgba(30, 42, 58, 0.35);
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
   display: flex;
   align-items: flex-end;
   justify-content: center;
@@ -302,19 +423,28 @@ async function confirmNickname() {
 
 .modal {
   background: var(--card-bg);
-  border-radius: 20px 20px 0 0;
-  padding: 28px 20px;
+  border-radius: var(--radius-xl) var(--radius-xl) 0 0;
+  padding: 32px 24px 28px;
   width: 100%;
   max-width: 480px;
   max-height: 80vh;
   overflow-y: auto;
+  box-shadow: 0 -8px 32px rgba(0, 0, 0, 0.12);
+}
+
+.modal-icon-wrap {
+  display: flex;
+  justify-content: center;
+  margin-bottom: 12px;
 }
 
 .modal-title {
-  font-size: 18px;
-  font-weight: 700;
+  font-family: var(--font-display);
+  font-size: 20px;
+  font-weight: 800;
   text-align: center;
-  margin-bottom: 20px;
+  margin-bottom: 4px;
+  color: var(--text);
 }
 
 .form-row {
@@ -332,50 +462,12 @@ async function confirmNickname() {
 
 .form-label {
   display: block;
+  font-family: var(--font-display);
   font-size: 13px;
-  font-weight: 500;
+  font-weight: 600;
   color: var(--text-secondary);
   margin-bottom: 8px;
-}
-
-.member-inputs {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-}
-
-.member-input-row {
-  display: flex;
-  gap: 8px;
-  align-items: center;
-}
-
-.member-input {
-  flex: 1;
-}
-
-.remove-member {
-  width: 32px;
-  height: 32px;
-  border: none;
-  background: var(--bg);
-  border-radius: 50%;
-  font-size: 16px;
-  color: var(--text-secondary);
-  cursor: pointer;
-  flex-shrink: 0;
-}
-
-.add-member-btn {
-  width: 100%;
-  padding: 10px;
-  border: 1px dashed var(--border);
-  background: transparent;
-  border-radius: 10px;
-  font-size: 14px;
-  color: var(--primary);
-  cursor: pointer;
-  margin-top: 4px;
+  letter-spacing: 0.01em;
 }
 
 /* 货币选择 */
@@ -383,7 +475,7 @@ async function confirmNickname() {
   width: 100%;
   appearance: none;
   -webkit-appearance: none;
-  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%23999' d='M6 8L1 3h10z'/%3E%3C/svg%3E");
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%237A8BA0' d='M6 8L1 3h10z'/%3E%3C/svg%3E");
   background-repeat: no-repeat;
   background-position: right 12px center;
   padding-right: 32px;
@@ -397,7 +489,26 @@ async function confirmNickname() {
 
 .modal-actions .btn {
   flex: 1;
-  padding: 12px;
+  padding: 14px;
+  border-radius: var(--radius);
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: 15px;
+  transition: transform 0.15s ease;
+}
+
+.modal-actions .btn:active {
+  transform: scale(0.97);
+}
+
+.modal-actions .btn-primary {
+  background: var(--primary-gradient);
+  box-shadow: 0 4px 12px rgba(59, 155, 204, 0.3);
+}
+
+.modal-actions .btn-ghost {
+  color: var(--text-secondary);
+  font-weight: 600;
 }
 
 /* 昵称弹窗 */
@@ -410,8 +521,45 @@ async function confirmNickname() {
 
 .nickname-input {
   text-align: center;
-  font-size: 18px;
+  font-family: var(--font-display);
+  font-size: 20px;
   padding: 14px;
-  font-weight: 600;
+  font-weight: 700;
+  border: 2px solid var(--border-light);
+  transition: border-color 0.2s ease;
+}
+
+.nickname-input:focus {
+  border-color: var(--primary);
+  box-shadow: 0 0 0 3px rgba(59, 155, 204, 0.1);
+}
+
+/* 弹窗动画 */
+.modal-up-enter-active {
+  transition: all 0.35s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.modal-up-leave-active {
+  transition: all 0.25s ease-in;
+}
+
+.modal-up-enter-from .modal,
+.modal-up-leave-to .modal {
+  transform: translateY(100%);
+  opacity: 0;
+}
+
+.modal-up-enter-from,
+.modal-up-leave-to {
+  opacity: 0;
+}
+
+.modal-up-enter-active .modal {
+  animation: modalSlideIn 0.35s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+@keyframes modalSlideIn {
+  from { transform: translateY(60px); opacity: 0; }
+  to { transform: translateY(0); opacity: 1; }
 }
 </style>
