@@ -31,6 +31,9 @@
             </svg>
             共消费 <strong>{{ currencySymbol }}{{ formatMoney(total) }}</strong>
           </span>
+          <span v-if="isForeignCurrency && totalCny > 0" class="hero-stat-badge hero-stat-cny">
+            ≈ ¥{{ formatMoney(totalCny) }} CNY
+          </span>
         </div>
       </div>
       <div class="header-actions">
@@ -237,7 +240,7 @@ import { computed, ref, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useTripStore } from '../../stores/trip'
 import { formatMoney } from '../../utils/trip-storage'
-import { fetchRates, getRateText } from '../../utils/exchange-rate'
+import { fetchRates, getRateText, convertToCNY } from '../../utils/exchange-rate'
 import { getCurrencyInfo } from '../../types/currencies'
 
 const route = useRoute()
@@ -307,12 +310,14 @@ const groupedExpenses = computed(() => {
 
 const rateText = ref('')
 const rateLoading = ref(true)
+const totalCny = ref(0)
 
 onMounted(async () => {
   if (trip.value && trip.value.currency !== 'CNY') {
     rateLoading.value = true
     const data = await fetchRates()
     rateText.value = getRateText(trip.value!.currency, data.rates)
+    totalCny.value = convertToCNY(total.value, trip.value!.currency, data.rates)
     rateLoading.value = false
   }
 })
@@ -474,6 +479,18 @@ async function confirmDelete(id: string) {
 
 .hero-stat-badge svg {
   flex-shrink: 0;
+}
+
+.hero-stat-badge strong {
+  color: var(--text);
+  font-weight: 700;
+}
+
+.hero-stat-cny {
+  background: var(--primary-light);
+  color: var(--primary);
+  border-color: var(--primary);
+  font-weight: 700;
 }
 
 .hero-stat-badge strong {

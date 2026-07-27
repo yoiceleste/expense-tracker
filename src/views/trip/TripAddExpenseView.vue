@@ -17,17 +17,35 @@
 
     <!-- 金额 -->
     <div class="amount-card">
-      <!-- 外币旅行：只显示外币金额输入框（大字号） -->
-      <div v-if="isForeignCurrency" class="foreign-amount-row">
-        <span class="foreign-symbol">{{ currencyInfo.symbol }}</span>
-        <input
-          v-model="amountStr"
-          type="text"
-          class="foreign-input"
-          :placeholder="currencyInfo.code"
-          inputmode="decimal"
-        />
-        <span class="foreign-code">{{ trip?.currency }}</span>
+      <!-- 外币旅行：双行显示，外币+人民币互相联动 -->
+      <div v-if="isForeignCurrency" class="dual-amount-wrap">
+        <!-- 第一行：外币 -->
+        <div class="foreign-amount-row">
+          <span class="foreign-symbol">{{ currencyInfo.symbol }}</span>
+          <input
+            v-model="amountStr"
+            type="text"
+            class="foreign-input"
+            :placeholder="currencyInfo.code"
+            inputmode="decimal"
+          />
+          <span class="foreign-code">{{ trip?.currency }}</span>
+        </div>
+        <!-- 第二行：人民币 -->
+        <div class="cny-amount-row cny-linked">
+          <span class="currency">¥</span>
+          <input
+            v-model="cnyAmountStr"
+            type="text"
+            class="amount-input"
+            placeholder="CNY"
+            inputmode="decimal"
+          />
+          <span class="cny-label">CNY</span>
+        </div>
+        <div v-if="rateText" class="rate-hint">
+          {{ rateText }}
+        </div>
       </div>
       <!-- 人民币旅行：只显示人民币金额输入框 -->
       <div v-else class="cny-amount-row">
@@ -40,13 +58,6 @@
           inputmode="decimal"
         />
         <span class="cny-label">CNY</span>
-      </div>
-      <div v-if="isForeignCurrency && rateText" class="rate-hint">
-        {{ rateText }}
-      </div>
-      <!-- 外币旅行时，显示人民币等值（只读） -->
-      <div v-if="isForeignCurrency && amountNum > 0 && cnyEquivalent > 0" class="rate-hint">
-        ≈ ¥{{ formatMoney(cnyEquivalent) }} CNY
       </div>
     </div>
 
@@ -231,7 +242,7 @@ import { ref, computed, reactive, watch, onMounted, nextTick } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useTripStore } from '../../stores/trip'
 import { formatMoney } from '../../utils/trip-storage'
-import { fetchRates, convertToCNY, getRateText } from '../../utils/exchange-rate'
+import { fetchRates, convertToCNY, convertFromCNY, getRateText } from '../../utils/exchange-rate'
 import { getCurrencyInfo } from '../../types/currencies'
 import type { TripExpense } from '../../types/trip'
 
@@ -250,6 +261,10 @@ const currencySymbol = computed(() => isForeignCurrency.value ? currencyInfo.val
 // === 金额状态 ===
 // amountStr: 始终存储原始币种金额（外币旅行存外币，人民币旅行存人民币）
 const amountStr = ref('')
+// cnyAmountStr: 外币旅行时的人民币金额（可编辑，与外币双向联动）
+const cnyAmountStr = ref('')
+// 标记当前正在由哪个输入框触发同步，防止循环
+let syncSource = ''
 
 const payerId = ref('')
 const splitAmong = ref<string[]>([])
@@ -266,9 +281,10 @@ const showDraftTip = ref(false)
 const DRAFT_KEY = `trip_expense_draft_${tripId}`
 
 function saveDraft() {
-  if (!amountStr.value && !note.value) return
+  if (!amountStr.value && !note.value && !cnyAmountStr.value) return
   const draft = {
     amountStr: amountStr.value,
+    cnyAmountStr: cnyAmountStr.value,
     payerId: payerId.value,
     splitAmong: splitAmong.value,
     splitMode: splitMode.value,
@@ -288,8 +304,9 @@ function loadDraft(): boolean {
     const raw = sessionStorage.getItem(DRAFT_KEY)
     if (!raw) return false
     const draft = JSON.parse(raw)
-    if (!draft.amountStr && !draft.note) return false
+    if (!draft.amountStr && !draft.note && !draft.cnyAmountStr) return false
     amountStr.value = draft.amountStr || ''
+    cnyAmountStr.value = draft.cnyAmountStr || ''
     payerId.value = draft.payerId || ''
     splitAmong.value = draft.splitAmong || []
     splitMode.value = draft.splitMode || 'equal'
@@ -325,6 +342,7 @@ function discardDraft() {
 
 function resetForm() {
   amountStr.value = ''
+  cnyAmountStr.value = ''
   payerId.value = trip.value?.members[0]?.id || ''
   splitAmong.value = []
   splitMode.value = 'equal'
@@ -342,11 +360,44 @@ function scheduleDraftSave() {
   draftTimer = setTimeout(saveDraft, 500)
 }
 
-watch([amountStr, payerId, splitAmong, splitMode, categoryId, payMethod, note, date], () => {
+watch([amountStr, cnyAmountStr, payerId, splitAmong, splitMode, categoryId, payMethod, note, date], () => {
   scheduleDraftSave()
 }, { deep: true })
 
 const amountNum = computed(() => parseFloat(amountStr.value) || 0)
+
+// 判断汇率是否已加载
+function hasRates(): boolean {
+  return exchangeRates !== null && Object.keys(exchangeRates).length > 0
+}
+
+// 外币 -> 人民币 自动同步
+watch(amountStr, (val) => {
+  if (!isForeignCurrency.value || !hasRates()) return
+  if (syncSource === 'cny') { syncSource = ''; return }
+  syncSource = 'foreign'
+  const num = parseFloat(val) || 0
+  if (num > 0) {
+    const cny = convertToCNY(num, trip.value!.currency, exchangeRates!)
+    cnyAmountStr.value = cny.toFixed(2)
+  } else {
+    cnyAmountStr.value = ''
+  }
+})
+
+// 人民币 -> 外币 自动同步
+watch(cnyAmountStr, (val) => {
+  if (!isForeignCurrency.value || !hasRates()) return
+  if (syncSource === 'foreign') { syncSource = ''; return }
+  syncSource = 'cny'
+  const num = parseFloat(val) || 0
+  if (num > 0) {
+    const foreign = convertFromCNY(num, trip.value!.currency, exchangeRates!)
+    amountStr.value = foreign.toFixed(2)
+  } else {
+    amountStr.value = ''
+  }
+})
 
 const payMethods = [
   { code: 'wechat', name: '微信', icon: '💬' },
@@ -368,12 +419,12 @@ const isAllSelected = computed(() =>
 
 // 汇率相关
 const rateText = ref('')
-let exchangeRates: Record<string, number> = {}
+let exchangeRates: Record<string, number> | null = null
 
 // 外币旅行时的人民币等值（只读显示）
 const cnyEquivalent = computed(() => {
   if (!isForeignCurrency.value || !exchangeRates || amountNum.value <= 0) return 0
-  return convertToCNY(amountNum.value, trip.value!.currency, exchangeRates)
+  return convertToCNY(amountNum.value, trip.value!.currency, exchangeRates!)
 })
 
 onMounted(async () => {
@@ -446,6 +497,11 @@ function previewImage(idx: number) {
 function loadExpense(expense: TripExpense) {
   // 直接用原始币种金额填充输入框
   amountStr.value = expense.amount.toFixed(2)
+  // 外币旅行：自动计算人民币等值填入第二行
+  if (isForeignCurrency.value && exchangeRates) {
+    const cny = convertToCNY(expense.amount, trip.value!.currency, exchangeRates)
+    cnyAmountStr.value = cny.toFixed(2)
+  }
   payerId.value = expense.payerId
   splitAmong.value = [...expense.splitAmong]
   splitMode.value = expense.splitMode || 'equal'
@@ -654,10 +710,18 @@ async function save() {
   overflow: hidden;
 }
 
+/* 双币种联动区域 */
+.dual-amount-wrap {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
 .foreign-amount-row {
   display: flex;
   align-items: baseline;
-  margin-bottom: 8px;
+  padding-bottom: 10px;
+  border-bottom: 1px dashed var(--border);
   position: relative;
 }
 
@@ -695,6 +759,32 @@ async function save() {
   border-radius: 6px;
 }
 
+/* 第二行：人民币（联动模式，比单行模式小） */
+.cny-amount-row.cny-linked {
+  padding-top: 10px;
+}
+
+.cny-amount-row.cny-linked .currency {
+  font-size: 18px;
+}
+
+.cny-amount-row.cny-linked .amount-input {
+  font-size: 22px;
+  font-weight: 600;
+}
+
+.cny-amount-row.cny-linked .cny-label {
+  font-family: var(--font-display);
+  font-size: 13px;
+  color: var(--primary);
+  font-weight: 600;
+  margin-left: 8px;
+  background: var(--bg);
+  padding: 2px 8px;
+  border-radius: 6px;
+}
+
+/* 单行人民币模式 */
 .cny-amount-row {
   display: flex;
   align-items: baseline;
