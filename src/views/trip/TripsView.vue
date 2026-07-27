@@ -79,7 +79,6 @@
     </div>
 
     <!-- 设置昵称弹窗 -->
-    <Transition name="modal-up">
       <div v-if="showNickname" class="modal-overlay" @click.self="showNickname = false">
         <div class="modal">
           <div class="modal-icon-wrap">
@@ -109,12 +108,10 @@
           </div>
         </div>
       </div>
-    </Transition>
 
     <!-- 新建旅行弹窗 -->
     <button class="fab" style="display:none" @click="showCreate = true">+</button>
 
-    <Transition name="modal-up">
       <div v-if="showCreate" class="modal-overlay" @click.self="showCreate = false">
         <div class="modal">
           <div class="modal-icon-wrap">
@@ -151,7 +148,6 @@
           </div>
         </div>
       </div>
-    </Transition>
   </div>
 </template>
 

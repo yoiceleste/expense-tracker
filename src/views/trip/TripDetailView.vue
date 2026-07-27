@@ -92,7 +92,6 @@
     </div>
 
     <!-- 添加成员弹窗 -->
-    <Transition name="modal-up">
       <div v-if="showAddMember" class="modal-overlay" @click.self="showAddMember = false">
         <div class="modal">
           <div class="modal-icon-wrap">
@@ -112,10 +111,8 @@
           </div>
         </div>
       </div>
-    </Transition>
 
     <!-- 编辑成员昵称弹窗 -->
-    <Transition name="modal-up">
       <div v-if="editingMember" class="modal-overlay" @click.self="editingMember = null">
         <div class="modal">
           <div class="modal-icon-wrap">
@@ -136,7 +133,6 @@
           </div>
         </div>
       </div>
-    </Transition>
 
     <!-- 快捷操作 -->
     <div class="action-row">
