@@ -135,48 +135,21 @@ async function handleJoin() {
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  padding: 20px;
+  padding: 24px;
   position: relative;
   overflow: hidden;
   background: var(--bg-trip);
 }
 
-/* 顶部渐变装饰 */
-.join-page::before {
-  content: '';
-  position: absolute;
-  top: -60px;
-  right: -40px;
-  width: 200px;
-  height: 200px;
-  background: radial-gradient(circle, rgba(59, 155, 204, 0.1) 0%, transparent 70%);
-  border-radius: 50%;
-  pointer-events: none;
-}
-
-.join-page::after {
-  content: '';
-  position: absolute;
-  bottom: -40px;
-  left: -30px;
-  width: 160px;
-  height: 160px;
-  background: radial-gradient(circle, rgba(86, 198, 169, 0.08) 0%, transparent 70%);
-  border-radius: 50%;
-  pointer-events: none;
-}
-
-/* 加入卡片 - 磨砂玻璃 */
+/* 加入卡片 */
 .join-card {
-  background: var(--card-bg-soft);
-  backdrop-filter: blur(20px);
-  -webkit-backdrop-filter: blur(20px);
-  border: 1px solid rgba(255, 255, 255, 0.7);
+  background: var(--card-bg);
+  border: 1px solid var(--border);
   border-radius: var(--radius-xl);
-  padding: 40px 28px 32px;
+  padding: 48px 28px 36px;
   width: 100%;
   max-width: 380px;
-  box-shadow: var(--shadow-lg);
+  box-shadow: var(--shadow);
   text-align: center;
   position: relative;
   z-index: 1;
@@ -184,51 +157,44 @@ async function handleJoin() {
 
 /* Logo */
 .join-logo {
-  margin-bottom: 12px;
+  margin-bottom: 16px;
   display: flex;
   justify-content: center;
-}
-
-.join-logo svg {
-  animation: floatLogo 3s ease-in-out infinite;
-}
-
-@keyframes floatLogo {
-  0%, 100% { transform: translateY(0) rotate(-3deg); }
-  50% { transform: translateY(-4px) rotate(0deg); }
 }
 
 /* 标题 */
 .join-title {
   font-family: var(--font-display);
-  font-size: 24px;
-  font-weight: 800;
+  font-size: 26px;
+  font-weight: 600;
   color: var(--text);
-  margin-bottom: 6px;
-  letter-spacing: -0.02em;
+  margin-bottom: 8px;
+  letter-spacing: -0.01em;
+  font-style: italic;
 }
 
 /* 元信息 */
 .join-meta {
   font-size: 13px;
   color: var(--text-secondary);
-  margin-bottom: 28px;
+  margin-bottom: 32px;
   font-weight: 500;
+  letter-spacing: 0.02em;
 }
 
 /* 表单 */
 .form-group {
-  margin-bottom: 18px;
+  margin-bottom: 20px;
 }
 
 .form-group .input {
   text-align: center;
   font-family: var(--font-display);
   font-size: 18px;
-  font-weight: 700;
+  font-weight: 600;
   padding: 14px 16px;
   border-radius: var(--radius);
-  border: 2px solid var(--border-light);
+  border: 1px solid var(--border);
   background: var(--card-bg);
   transition: border-color 0.2s ease, box-shadow 0.2s ease;
   letter-spacing: -0.01em;
@@ -236,7 +202,7 @@ async function handleJoin() {
 
 .form-group .input:focus {
   border-color: var(--primary);
-  box-shadow: 0 0 0 4px rgba(59, 155, 204, 0.1);
+  box-shadow: 0 0 0 3px rgba(0, 0, 0, 0.06);
   outline: none;
 }
 
@@ -250,10 +216,10 @@ async function handleJoin() {
 .btn-block {
   padding: 14px;
   font-size: 16px;
-  font-weight: 700;
+  font-weight: 600;
   font-family: var(--font-display);
   border-radius: var(--radius);
-  transition: transform 0.15s ease, box-shadow 0.15s ease;
+  transition: transform 0.5s ease;
 }
 
 .btn-block:disabled {
@@ -263,12 +229,13 @@ async function handleJoin() {
 
 .btn-primary.btn-block {
   background: var(--primary-gradient);
-  box-shadow: 0 4px 12px rgba(59, 155, 204, 0.3);
+  color: #fff;
   border: none;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.12);
 }
 
 .btn-primary.btn-block:active:not(:disabled) {
-  transform: scale(0.97);
+  transform: scale(0.98);
 }
 
 /* 加载状态 */
@@ -296,7 +263,7 @@ async function handleJoin() {
 }
 
 .redirect-icon svg {
-  animation: checkBounce 0.6s cubic-bezier(0.34, 1.56, 0.64, 1);
+  animation: checkBounce 0.5s ease;
 }
 
 @keyframes checkBounce {
@@ -316,6 +283,6 @@ async function handleJoin() {
 
 @keyframes pulse {
   0%, 100% { transform: scale(1); opacity: 1; }
-  50% { transform: scale(1.08); opacity: 0.8; }
+  50% { transform: scale(1.05); opacity: 0.8; }
 }
 </style>

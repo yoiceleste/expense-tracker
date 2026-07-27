@@ -448,6 +448,7 @@ async function confirmDelete(id: string) {
 
 .hero-meta {
   font-family: var(--font-display);
+  font-style: italic;
   font-size: 22px;
   font-weight: 800;
   color: var(--text);
@@ -467,8 +468,6 @@ async function confirmDelete(id: string) {
   align-items: center;
   gap: 5px;
   background: var(--card-bg-soft);
-  backdrop-filter: blur(8px);
-  -webkit-backdrop-filter: blur(8px);
   padding: 5px 12px;
   border-radius: var(--radius-full);
   font-size: 13px;
@@ -498,8 +497,6 @@ async function confirmDelete(id: string) {
   height: 40px;
   border: none;
   background: var(--card-bg-soft);
-  backdrop-filter: blur(10px);
-  -webkit-backdrop-filter: blur(10px);
   border-radius: var(--radius);
   cursor: pointer;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
@@ -644,9 +641,7 @@ async function confirmDelete(id: string) {
 .modal-overlay {
   position: fixed;
   inset: 0;
-  background: rgba(30, 42, 58, 0.35);
-  backdrop-filter: blur(4px);
-  -webkit-backdrop-filter: blur(4px);
+  background: rgba(0, 0, 0, 0.4);
   display: flex;
   align-items: flex-end;
   justify-content: center;
@@ -695,7 +690,7 @@ async function confirmDelete(id: string) {
 
 .modal-input:focus {
   border-color: var(--primary);
-  box-shadow: 0 0 0 4px rgba(59, 155, 204, 0.1);
+  box-shadow: 0 0 0 4px rgba(0, 0, 0, 0.08);
   outline: none;
 }
 
@@ -721,7 +716,7 @@ async function confirmDelete(id: string) {
 
 .modal-actions .btn-primary {
   background: var(--primary-gradient);
-  box-shadow: 0 4px 12px rgba(59, 155, 204, 0.3);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.12);
   border: none;
 }
 
@@ -824,17 +819,17 @@ async function confirmDelete(id: string) {
 
 .action-icon-write {
   background: var(--primary-gradient);
-  box-shadow: 0 3px 10px rgba(59, 155, 204, 0.3);
+  box-shadow: 0 3px 10px rgba(0, 0, 0, 0.12);
 }
 
 .action-icon-settle {
-  background: linear-gradient(135deg, var(--accent) 0%, #F7C948 100%);
-  box-shadow: 0 3px 10px rgba(245, 166, 35, 0.3);
+  background: var(--primary-gradient);
+  box-shadow: 0 3px 10px rgba(0, 0, 0, 0.12);
 }
 
 .action-icon-chart {
-  background: linear-gradient(135deg, #4ECDC4 0%, #44B09E 100%);
-  box-shadow: 0 3px 10px rgba(78, 205, 196, 0.3);
+  background: var(--primary-gradient);
+  box-shadow: 0 3px 10px rgba(0, 0, 0, 0.12);
 }
 
 .action-text {
@@ -847,6 +842,7 @@ async function confirmDelete(id: string) {
 /* ===== 消费列表 ===== */
 .section-title {
   font-family: var(--font-display);
+  font-style: italic;
   font-size: 15px;
   font-weight: 700;
   color: var(--text-secondary);
@@ -938,7 +934,7 @@ async function confirmDelete(id: string) {
   background: var(--primary-gradient-soft);
   border-radius: var(--radius);
   flex-shrink: 0;
-  box-shadow: inset 0 1px 3px rgba(59, 155, 204, 0.08);
+  box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.04);
 }
 
 .expense-info {
@@ -1079,7 +1075,7 @@ async function confirmDelete(id: string) {
   font-size: 28px;
   font-weight: 300;
   cursor: pointer;
-  box-shadow: 0 6px 20px rgba(59, 155, 204, 0.35);
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.12);
   transition: transform 0.2s cubic-bezier(0.34, 1.56, 0.64, 1);
   display: flex;
   align-items: center;

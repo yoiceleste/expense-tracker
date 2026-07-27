@@ -255,7 +255,7 @@ async function confirmNickname() {
 
 /* ===== Hero 头部 ===== */
 .trips-hero {
-  padding: 24px 20px 32px;
+  padding: 32px 20px 40px;
 }
 
 .hero-header {
@@ -268,29 +268,25 @@ async function confirmNickname() {
 
 .hero-title {
   font-family: var(--font-display);
-  font-size: 28px;
-  font-weight: 800;
+  font-size: 30px;
+  font-weight: 600;
   color: var(--text);
-  letter-spacing: -0.02em;
-  line-height: 1.1;
-  margin-bottom: 4px;
+  letter-spacing: -0.01em;
+  line-height: 1.15;
+  margin-bottom: 6px;
+  font-style: italic;
 }
 
 .hero-subtitle {
   font-size: 14px;
   color: var(--text-secondary);
   font-weight: 400;
+  letter-spacing: 0.02em;
 }
 
 .hero-plane {
-  opacity: 0.6;
+  opacity: 0.5;
   flex-shrink: 0;
-  animation: floatPlane 4s ease-in-out infinite;
-}
-
-@keyframes floatPlane {
-  0%, 100% { transform: translateY(0) rotate(-5deg); }
-  50% { transform: translateY(-6px) rotate(0deg); }
 }
 
 /* ===== 内容区 ===== */
@@ -307,35 +303,35 @@ async function confirmNickname() {
   margin-bottom: 14px;
   overflow: hidden;
   cursor: pointer;
+  border: 1px solid var(--border);
   box-shadow: var(--shadow);
-  transition: transform 0.2s cubic-bezier(0.34, 1.56, 0.64, 1), box-shadow 0.2s ease;
+  transition: transform 0.5s ease, box-shadow 0.5s ease;
 }
 
 .trip-card:active {
-  transform: scale(0.98);
-  box-shadow: var(--shadow);
+  transform: scale(0.99);
 }
 
 .trip-card-accent {
-  height: 4px;
+  height: 3px;
   background: var(--primary-gradient);
 }
 
 .trip-card-body {
-  padding: 16px 18px 18px;
+  padding: 18px 20px 20px;
 }
 
 .trip-top {
   display: flex;
   justify-content: space-between;
   align-items: flex-start;
-  margin-bottom: 14px;
+  margin-bottom: 16px;
 }
 
 .trip-name {
   font-family: var(--font-display);
   font-size: 18px;
-  font-weight: 700;
+  font-weight: 600;
   color: var(--text);
   margin-bottom: 4px;
   letter-spacing: -0.01em;
@@ -361,7 +357,7 @@ async function confirmNickname() {
 .trip-amount {
   font-family: var(--font-display);
   font-size: 22px;
-  font-weight: 800;
+  font-weight: 600;
   color: var(--text);
   line-height: 1.1;
 }
@@ -371,6 +367,8 @@ async function confirmNickname() {
   color: var(--text-secondary);
   font-weight: 500;
   margin-top: 2px;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
 }
 
 /* ===== 成员头像 ===== */
@@ -387,11 +385,11 @@ async function confirmNickname() {
   align-items: center;
   justify-content: center;
   font-size: 13px;
-  font-weight: 700;
+  font-weight: 600;
   color: white;
   border: 2px solid var(--card-bg);
-  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.08);
-  transition: transform 0.15s ease;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.06);
+  transition: transform 0.5s ease;
   font-family: var(--font-display);
 }
 
@@ -412,9 +410,7 @@ async function confirmNickname() {
 .modal-overlay {
   position: fixed;
   inset: 0;
-  background: rgba(30, 42, 58, 0.35);
-  backdrop-filter: blur(4px);
-  -webkit-backdrop-filter: blur(4px);
+  background: rgba(0, 0, 0, 0.4);
   display: flex;
   align-items: flex-end;
   justify-content: center;
@@ -424,31 +420,32 @@ async function confirmNickname() {
 .modal {
   background: var(--card-bg);
   border-radius: var(--radius-xl) var(--radius-xl) 0 0;
-  padding: 32px 24px 28px;
+  padding: 36px 24px 28px;
   width: 100%;
   max-width: 480px;
   max-height: 80vh;
   overflow-y: auto;
-  box-shadow: 0 -8px 32px rgba(0, 0, 0, 0.12);
+  box-shadow: 0 -2px 16px rgba(0, 0, 0, 0.08);
 }
 
 .modal-icon-wrap {
   display: flex;
   justify-content: center;
-  margin-bottom: 12px;
+  margin-bottom: 16px;
 }
 
 .modal-title {
   font-family: var(--font-display);
-  font-size: 20px;
-  font-weight: 800;
+  font-size: 22px;
+  font-weight: 600;
   text-align: center;
   margin-bottom: 4px;
   color: var(--text);
+  letter-spacing: -0.01em;
 }
 
 .form-row {
-  margin-bottom: 16px;
+  margin-bottom: 18px;
 }
 
 .date-row {
@@ -463,11 +460,12 @@ async function confirmNickname() {
 .form-label {
   display: block;
   font-family: var(--font-display);
-  font-size: 13px;
+  font-size: 12px;
   font-weight: 600;
   color: var(--text-secondary);
   margin-bottom: 8px;
-  letter-spacing: 0.01em;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
 }
 
 /* 货币选择 */
@@ -492,18 +490,19 @@ async function confirmNickname() {
   padding: 14px;
   border-radius: var(--radius);
   font-family: var(--font-display);
-  font-weight: 700;
+  font-weight: 600;
   font-size: 15px;
-  transition: transform 0.15s ease;
+  transition: transform 0.5s ease;
 }
 
 .modal-actions .btn:active {
-  transform: scale(0.97);
+  transform: scale(0.98);
 }
 
 .modal-actions .btn-primary {
   background: var(--primary-gradient);
-  box-shadow: 0 4px 12px rgba(59, 155, 204, 0.3);
+  color: #fff;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.12);
 }
 
 .modal-actions .btn-ghost {
@@ -524,23 +523,23 @@ async function confirmNickname() {
   font-family: var(--font-display);
   font-size: 20px;
   padding: 14px;
-  font-weight: 700;
-  border: 2px solid var(--border-light);
+  font-weight: 600;
+  border: 1px solid var(--border);
   transition: border-color 0.2s ease;
 }
 
 .nickname-input:focus {
   border-color: var(--primary);
-  box-shadow: 0 0 0 3px rgba(59, 155, 204, 0.1);
+  box-shadow: 0 0 0 3px rgba(0, 0, 0, 0.06);
 }
 
 /* 弹窗动画 */
 .modal-up-enter-active {
-  transition: all 0.35s cubic-bezier(0.22, 1, 0.36, 1);
+  transition: all 0.5s ease;
 }
 
 .modal-up-leave-active {
-  transition: all 0.25s ease-in;
+  transition: all 0.3s ease-in;
 }
 
 .modal-up-enter-from .modal,
@@ -555,7 +554,7 @@ async function confirmNickname() {
 }
 
 .modal-up-enter-active .modal {
-  animation: modalSlideIn 0.35s cubic-bezier(0.22, 1, 0.36, 1);
+  animation: modalSlideIn 0.5s ease;
 }
 
 @keyframes modalSlideIn {

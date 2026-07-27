@@ -573,16 +573,15 @@ async function save() {
   width: 38px;
   height: 38px;
   border: none;
-  background: rgba(255, 255, 255, 0.7);
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
+  background: var(--card-bg);
+  border: 1px solid var(--border);
   border-radius: 50%;
   cursor: pointer;
   display: flex;
   align-items: center;
   justify-content: center;
   color: var(--text);
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
   transition: transform 0.2s ease, box-shadow 0.2s ease;
 }
 
@@ -592,6 +591,7 @@ async function save() {
 
 .trip-nav-title {
   font-family: var(--font-display);
+  font-style: italic;
   font-size: 17px;
   font-weight: 700;
   color: var(--text);
@@ -608,8 +608,8 @@ async function save() {
   align-items: center;
   gap: 8px;
   padding: 12px 16px;
-  background: linear-gradient(135deg, #FFF8EE 0%, #FFF3E0 100%);
-  border: 1px solid rgba(245, 166, 35, 0.2);
+  background: var(--primary-gradient-soft);
+  border: 1px solid var(--border);
   border-radius: var(--radius);
   margin-bottom: 16px;
   animation: slideDown 0.35s ease;
@@ -623,13 +623,13 @@ async function save() {
   flex: 1;
   font-size: 13px;
   font-weight: 500;
-  color: #B5791A;
+  color: var(--text);
 }
 
 .draft-discard {
   border: none;
-  background: rgba(245, 166, 35, 0.15);
-  color: #D4891A;
+  background: rgba(0, 0, 0, 0.06);
+  color: var(--text-secondary);
   font-size: 12px;
   font-weight: 600;
   cursor: pointer;
@@ -639,30 +639,19 @@ async function save() {
 }
 
 .draft-discard:active {
-  background: rgba(245, 166, 35, 0.25);
+  background: rgba(0, 0, 0, 0.1);
 }
 
 /* ===== 金额卡片 ===== */
 .amount-card {
   padding: 28px 20px 20px;
-  background: linear-gradient(145deg, #EBF6FC 0%, #D6EEF9 40%, #C8E6F5 100%);
+  background: var(--card-bg);
+  border: 1px solid var(--border);
   border-radius: var(--radius-lg);
   margin-bottom: 14px;
   box-shadow: var(--shadow);
   position: relative;
   overflow: hidden;
-}
-
-.amount-card::before {
-  content: '';
-  position: absolute;
-  top: -30px;
-  right: -30px;
-  width: 120px;
-  height: 120px;
-  background: radial-gradient(circle, rgba(59, 155, 204, 0.12) 0%, transparent 70%);
-  border-radius: 50%;
-  pointer-events: none;
 }
 
 .foreign-amount-row {
@@ -692,7 +681,7 @@ async function save() {
 }
 
 .foreign-input::placeholder {
-  color: rgba(59, 155, 204, 0.35);
+  color: rgba(0, 0, 0, 0.25);
 }
 
 .foreign-code {
@@ -701,7 +690,7 @@ async function save() {
   color: var(--primary);
   font-weight: 600;
   margin-left: 8px;
-  background: rgba(255, 255, 255, 0.5);
+  background: var(--bg);
   padding: 2px 8px;
   border-radius: 6px;
 }
@@ -717,7 +706,7 @@ async function save() {
   color: var(--primary);
   font-weight: 600;
   margin-left: 8px;
-  background: rgba(255, 255, 255, 0.5);
+  background: var(--bg);
   padding: 2px 8px;
   border-radius: 6px;
 }
@@ -751,7 +740,7 @@ async function save() {
 }
 
 .amount-input::placeholder {
-  color: rgba(59, 155, 204, 0.3);
+  color: rgba(0, 0, 0, 0.25);
 }
 
 /* ===== 卡片通用 ===== */
@@ -777,7 +766,7 @@ async function save() {
 
 .toggle-all {
   border: none;
-  background: rgba(59, 155, 204, 0.08);
+  background: rgba(0, 0, 0, 0.05);
   color: var(--primary);
   font-size: 12px;
   font-weight: 600;
@@ -788,7 +777,7 @@ async function save() {
 }
 
 .toggle-all:active {
-  background: rgba(59, 155, 204, 0.18);
+  background: rgba(0, 0, 0, 0.1);
 }
 
 /* ===== 成员选择器 chip ===== */
@@ -857,7 +846,7 @@ async function save() {
 .mode-btn.active {
   background: var(--primary-gradient);
   color: white;
-  box-shadow: 0 2px 8px rgba(59, 155, 204, 0.3);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.12);
 }
 
 /* ===== 均摊提示 ===== */
@@ -868,12 +857,12 @@ async function save() {
   color: var(--text-secondary);
   text-align: center;
   padding: 10px;
-  background: linear-gradient(135deg, rgba(59, 155, 204, 0.06) 0%, rgba(59, 155, 204, 0.02) 100%);
+  background: var(--bg);
   border-radius: 12px;
 }
 
 .split-hint-warning {
-  background: linear-gradient(135deg, #FFF5EB 0%, #FFF0E0 100%);
+  background: var(--bg);
 }
 
 /* ===== 自定义金额 ===== */
@@ -886,7 +875,7 @@ async function save() {
   align-items: center;
   justify-content: space-between;
   padding: 10px 0;
-  border-bottom: 1px solid rgba(59, 155, 204, 0.06);
+  border-bottom: 1px solid var(--border);
 }
 
 .custom-row:last-of-type {
@@ -920,7 +909,7 @@ async function save() {
 
 .custom-input-wrap:focus-within {
   border-color: var(--primary);
-  box-shadow: 0 0 0 3px rgba(59, 155, 204, 0.1);
+  box-shadow: 0 0 0 3px rgba(0, 0, 0, 0.08);
 }
 
 .custom-currency {
@@ -954,7 +943,7 @@ async function save() {
   align-items: center;
   margin-top: 12px;
   padding: 10px 16px;
-  background: linear-gradient(135deg, rgba(59, 155, 204, 0.06) 0%, rgba(59, 155, 204, 0.02) 100%);
+  background: var(--bg);
   border-radius: 12px;
   font-size: 13px;
   font-weight: 500;
@@ -972,13 +961,13 @@ async function save() {
 }
 
 .custom-summary .under {
-  color: #F5A623;
+  color: var(--text-secondary);
 }
 
 .custom-warning {
   margin-top: 8px;
   font-size: 12px;
-  color: #F5A623;
+  color: var(--text-secondary);
   padding-left: 4px;
   font-weight: 500;
 }
@@ -1008,9 +997,9 @@ async function save() {
 }
 
 .cat-item.active {
-  background: linear-gradient(135deg, rgba(59, 155, 204, 0.1) 0%, rgba(59, 155, 204, 0.04) 100%);
+  background: rgba(0, 0, 0, 0.03);
   border-color: var(--primary);
-  box-shadow: 0 2px 8px rgba(59, 155, 204, 0.12);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
 }
 
 .cat-icon {
@@ -1068,7 +1057,7 @@ async function save() {
 
 .input:focus {
   border-color: var(--primary);
-  box-shadow: 0 0 0 3px rgba(59, 155, 204, 0.1);
+  box-shadow: 0 0 0 3px rgba(0, 0, 0, 0.08);
 }
 
 .input::placeholder {
@@ -1112,7 +1101,6 @@ async function save() {
   height: 24px;
   border: none;
   background: rgba(0, 0, 0, 0.45);
-  backdrop-filter: blur(4px);
   color: white;
   border-radius: 50%;
   font-size: 12px;
@@ -1131,7 +1119,7 @@ async function save() {
 .image-add {
   width: 84px;
   height: 84px;
-  border: 2px dashed rgba(59, 155, 204, 0.3);
+  border: 2px dashed var(--border);
   border-radius: var(--radius);
   display: flex;
   flex-direction: column;
@@ -1140,12 +1128,12 @@ async function save() {
   gap: 4px;
   cursor: pointer;
   transition: all 0.2s;
-  background: rgba(59, 155, 204, 0.03);
+  background: var(--bg);
 }
 
 .image-add:active {
   border-color: var(--primary);
-  background: rgba(59, 155, 204, 0.08);
+  background: rgba(0, 0, 0, 0.04);
   transform: scale(0.95);
 }
 
@@ -1191,10 +1179,10 @@ async function save() {
 
 .pm-chip.active {
   border-color: var(--primary);
-  background: linear-gradient(135deg, rgba(59, 155, 204, 0.1) 0%, rgba(59, 155, 204, 0.04) 100%);
+  background: rgba(0, 0, 0, 0.03);
   color: var(--primary);
   font-weight: 600;
-  box-shadow: 0 2px 8px rgba(59, 155, 204, 0.12);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
 }
 
 /* ===== 保存按钮 ===== */
@@ -1207,7 +1195,7 @@ async function save() {
   border-radius: var(--radius);
   background: var(--primary-gradient);
   color: white;
-  box-shadow: 0 4px 12px rgba(59, 155, 204, 0.3);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.12);
   border: none;
   letter-spacing: 0.5px;
   transition: all 0.25s ease;
@@ -1215,7 +1203,7 @@ async function save() {
 
 .save-btn:active {
   transform: scale(0.97);
-  box-shadow: 0 2px 8px rgba(59, 155, 204, 0.25);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
 }
 
 /* ===== 动画 ===== */

@@ -93,51 +93,51 @@ onMounted(async () => {
 }
 
 :root {
-  /* 主色系 - 清新旅行风 */
-  --primary: #3B9BCC;
-  --primary-light: #E8F4FA;
-  --primary-gradient: linear-gradient(135deg, #3B9BCC 0%, #56C6A9 100%);
-  --primary-gradient-soft: linear-gradient(135deg, #E8F4FA 0%, #E4F7F0 100%);
-  --primary-gradient-v: linear-gradient(180deg, #3B9BCC 0%, #56C6A9 100%);
+  /* 主色系 - 极简精致风 */
+  --primary: #1A1A1A;
+  --primary-light: #F5F5F5;
+  --primary-gradient: #1A1A1A;
+  --primary-gradient-soft: #FAFAFA;
+  --primary-gradient-v: #1A1A1A;
 
   /* 点缀色 */
-  --accent: #F5A623;
-  --accent-light: #FFF4E0;
+  --accent: #E76F51;
+  --accent-light: #FDF0EC;
 
   /* 收支色 */
-  --income: #4ECDC4;
-  --income-light: #E8FAF8;
-  --expense: #FF6B6B;
-  --expense-light: #FFF0F0;
+  --income: #2D6A4F;
+  --income-light: #E8F5EE;
+  --expense: #E76F51;
+  --expense-light: #FDF0EC;
 
   /* 背景与卡片 */
-  --bg: #F2F5F9;
-  --bg-trip: linear-gradient(180deg, #E8F4FA 0%, #F2F5F9 40%);
+  --bg: #FAFAFA;
+  --bg-trip: #FFFFFF;
   --card-bg: #ffffff;
-  --card-bg-soft: rgba(255, 255, 255, 0.75);
+  --card-bg-soft: rgba(255, 255, 255, 0.92);
 
   /* 文字 */
-  --text: #1E2A3A;
-  --text-secondary: #7A8BA0;
-  --text-tertiary: #A8B8C8;
+  --text: #1A1A1A;
+  --text-secondary: #999999;
+  --text-tertiary: #CCCCCC;
 
   /* 边框与阴影 */
-  --border: #E2EAF0;
-  --border-light: #EDF2F7;
-  --shadow: 0 2px 16px rgba(59, 155, 204, 0.06);
-  --shadow-lg: 0 8px 32px rgba(59, 155, 204, 0.10);
-  --shadow-accent: 0 4px 16px rgba(245, 166, 35, 0.15);
+  --border: #ECECEC;
+  --border-light: #F5F5F5;
+  --shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
+  --shadow-lg: 0 4px 24px rgba(0, 0, 0, 0.06);
+  --shadow-accent: 0 2px 12px rgba(231, 111, 81, 0.12);
 
   /* 圆角 */
-  --radius: 16px;
-  --radius-lg: 20px;
-  --radius-xl: 24px;
+  --radius: 10px;
+  --radius-lg: 14px;
+  --radius-xl: 18px;
   --radius-full: 9999px;
   --nav-height: 60px;
 
   /* 字体 */
-  --font-display: 'Nunito', 'PingFang SC', 'Microsoft YaHei', sans-serif;
-  --font-body: 'DM Sans', 'PingFang SC', 'Microsoft YaHei', sans-serif;
+  --font-display: 'Fraunces', 'Songti SC', 'SimSun', serif;
+  --font-body: 'Plus Jakarta Sans', 'PingFang SC', 'Microsoft YaHei', sans-serif;
 }
 
 body {
@@ -155,7 +155,7 @@ body {
   padding-bottom: 40px;
 }
 
-/* 旅行页面顶部渐变背景装饰 */
+/* 旅行页面顶部区域 */
 .trip-hero-bg {
   position: relative;
   background: var(--bg-trip);
@@ -164,27 +164,11 @@ body {
 }
 
 .trip-hero-bg::before {
-  content: '';
-  position: absolute;
-  top: -40px;
-  right: -30px;
-  width: 180px;
-  height: 180px;
-  background: radial-gradient(circle, rgba(59, 155, 204, 0.08) 0%, transparent 70%);
-  border-radius: 50%;
-  pointer-events: none;
+  display: none;
 }
 
 .trip-hero-bg::after {
-  content: '';
-  position: absolute;
-  top: 20px;
-  left: -40px;
-  width: 120px;
-  height: 120px;
-  background: radial-gradient(circle, rgba(86, 198, 169, 0.06) 0%, transparent 70%);
-  border-radius: 50%;
-  pointer-events: none;
+  display: none;
 }
 
 /* 旅行通用返回导航栏 */
@@ -192,50 +176,48 @@ body {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 16px 0 12px;
+  padding: 20px 0 16px;
   position: relative;
   z-index: 1;
 }
 
 .trip-nav-back {
-  width: 38px;
-  height: 38px;
-  border: none;
-  background: var(--card-bg-soft);
-  backdrop-filter: blur(10px);
-  -webkit-backdrop-filter: blur(10px);
+  width: 36px;
+  height: 36px;
+  border: 1px solid var(--border);
+  background: var(--card-bg);
   border-radius: var(--radius);
   font-size: 18px;
   cursor: pointer;
   display: flex;
   align-items: center;
   justify-content: center;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
-  transition: transform 0.15s ease;
+  box-shadow: none;
+  transition: transform 0.15s ease, border-color 0.15s ease;
 }
 
 .trip-nav-back:active {
   transform: scale(0.93);
+  border-color: var(--text);
 }
 
 .trip-nav-title {
   font-family: var(--font-display);
-  font-size: 17px;
-  font-weight: 700;
+  font-size: 16px;
+  font-weight: 500;
   color: var(--text);
-  letter-spacing: -0.01em;
+  letter-spacing: 0;
+  font-style: italic;
 }
 
 .trip-nav-placeholder {
-  width: 38px;
+  width: 36px;
 }
 
-/* 磨砂玻璃卡片 */
+/* 玻璃卡片 */
 .glass-card {
-  background: var(--card-bg-soft);
-  backdrop-filter: blur(16px);
-  -webkit-backdrop-filter: blur(16px);
-  border: 1px solid rgba(255, 255, 255, 0.6);
+  background: var(--card-bg);
+  border: 1px solid var(--border);
   border-radius: var(--radius-lg);
   box-shadow: var(--shadow);
 }
@@ -245,16 +227,16 @@ body {
   position: fixed;
   bottom: calc(var(--nav-height) + 20px);
   right: calc(50% - 240px + 20px);
-  width: 56px;
-  height: 56px;
+  width: 52px;
+  height: 52px;
   border: none;
-  background: var(--primary-gradient);
+  background: var(--text);
   color: white;
   border-radius: var(--radius);
-  font-size: 28px;
+  font-size: 26px;
   font-weight: 300;
   cursor: pointer;
-  box-shadow: 0 6px 20px rgba(59, 155, 204, 0.35);
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.15);
   transition: transform 0.2s cubic-bezier(0.34, 1.56, 0.64, 1);
   display: flex;
   align-items: center;
@@ -275,45 +257,47 @@ body {
 /* 旅行主题 section 标题 */
 .trip-section-title {
   font-family: var(--font-display);
-  font-size: 15px;
-  font-weight: 700;
+  font-size: 13px;
+  font-weight: 500;
   color: var(--text-secondary);
-  letter-spacing: 0.02em;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
   padding: 0 20px;
-  margin-bottom: 10px;
+  margin-bottom: 12px;
 }
 
 /* 旅行主题空状态 */
 .trip-empty {
   text-align: center;
-  padding: 60px 24px;
+  padding: 80px 24px;
 }
 
 .trip-empty-icon {
   font-size: 64px;
-  margin-bottom: 16px;
-  filter: saturate(0.85);
+  margin-bottom: 20px;
+  filter: grayscale(0.5) opacity(0.4);
 }
 
 .trip-empty-title {
   font-family: var(--font-display);
-  font-size: 18px;
-  font-weight: 700;
+  font-size: 20px;
+  font-weight: 400;
   color: var(--text);
   margin-bottom: 8px;
+  font-style: italic;
 }
 
 .trip-empty-desc {
-  font-size: 14px;
+  font-size: 13px;
   color: var(--text-secondary);
-  line-height: 1.5;
+  line-height: 1.6;
 }
 
 /* 入场动画 */
 @keyframes tripSlideUp {
   from {
     opacity: 0;
-    transform: translateY(16px);
+    transform: translateY(8px);
   }
   to {
     opacity: 1;
@@ -322,7 +306,7 @@ body {
 }
 
 .trip-animate-in {
-  animation: tripSlideUp 0.4s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+  animation: tripSlideUp 0.5s ease forwards;
   opacity: 0;
 }
 

@@ -171,7 +171,7 @@ function copySettlement() {
   background: var(--bg);
 }
 
-/* ===== 返回导航（磨砂玻璃） ===== */
+/* ===== 返回导航 ===== */
 .trip-nav {
   display: flex;
   align-items: center;
@@ -185,17 +185,15 @@ function copySettlement() {
 .trip-nav-back {
   width: 38px;
   height: 38px;
-  border: none;
-  background: rgba(255, 255, 255, 0.7);
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid var(--border);
+  background: var(--bg);
   border-radius: 50%;
   cursor: pointer;
   display: flex;
   align-items: center;
   justify-content: center;
   color: var(--text);
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+  box-shadow: var(--shadow);
   transition: transform 0.2s ease, box-shadow 0.2s ease;
 }
 
@@ -215,40 +213,16 @@ function copySettlement() {
   width: 38px;
 }
 
-/* ===== 概览卡片（渐变背景） ===== */
+/* ===== 概览卡片（纯黑背景白字） ===== */
 .summary-card {
   text-align: center;
   padding: 28px 24px 24px;
-  background: linear-gradient(145deg, #3B9BCC 0%, #4ECDC4 70%, #6FE4D8 100%);
+  background: #1A1A1A;
   border-radius: var(--radius-lg);
   margin-bottom: 22px;
-  box-shadow: 0 6px 20px rgba(59, 155, 204, 0.25);
+  box-shadow: var(--shadow);
   position: relative;
   overflow: hidden;
-}
-
-.summary-card::before {
-  content: '';
-  position: absolute;
-  top: -40px;
-  right: -40px;
-  width: 140px;
-  height: 140px;
-  background: radial-gradient(circle, rgba(255, 255, 255, 0.15) 0%, transparent 70%);
-  border-radius: 50%;
-  pointer-events: none;
-}
-
-.summary-card::after {
-  content: '';
-  position: absolute;
-  bottom: -30px;
-  left: -30px;
-  width: 100px;
-  height: 100px;
-  background: radial-gradient(circle, rgba(255, 255, 255, 0.1) 0%, transparent 70%);
-  border-radius: 50%;
-  pointer-events: none;
 }
 
 .summary-total {
@@ -258,14 +232,13 @@ function copySettlement() {
   color: white;
   margin-bottom: 6px;
   letter-spacing: 1px;
-  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.08);
   position: relative;
 }
 
 .summary-sub {
   font-size: 13px;
   font-weight: 500;
-  color: rgba(255, 255, 255, 0.85);
+  color: rgba(255, 255, 255, 0.7);
   position: relative;
 }
 
@@ -299,13 +272,13 @@ function copySettlement() {
   font-weight: 600;
   font-family: var(--font-display);
   cursor: pointer;
-  box-shadow: 0 3px 10px rgba(59, 155, 204, 0.25);
+  box-shadow: var(--shadow);
   transition: all 0.2s;
 }
 
 .copy-btn:active {
   transform: scale(0.95);
-  box-shadow: 0 2px 6px rgba(59, 155, 204, 0.2);
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.06);
 }
 
 /* ===== 余额列表 ===== */
@@ -315,6 +288,7 @@ function copySettlement() {
   padding: 6px 18px;
   margin-bottom: 22px;
   box-shadow: var(--shadow);
+  border: 1px solid var(--border);
 }
 
 .balance-item {
@@ -332,7 +306,7 @@ function copySettlement() {
   left: 0;
   right: 0;
   height: 1px;
-  background: linear-gradient(to right, transparent, rgba(59, 155, 204, 0.1), transparent);
+  background: var(--border);
 }
 
 .balance-item:last-child {
@@ -356,7 +330,6 @@ function copySettlement() {
   font-family: var(--font-display);
   font-weight: 700;
   color: white;
-  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.12);
   letter-spacing: 0.5px;
 }
 
@@ -395,16 +368,14 @@ function copySettlement() {
   color: var(--expense);
 }
 
-/* ===== 转账卡片（磨砂玻璃） ===== */
+/* ===== 转账卡片 ===== */
 .transfer-card {
-  background: rgba(255, 255, 255, 0.75);
-  backdrop-filter: blur(16px);
-  -webkit-backdrop-filter: blur(16px);
+  background: var(--card-bg);
   border-radius: var(--radius-lg);
   padding: 22px;
   margin-bottom: 12px;
-  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.06);
-  border: 1px solid rgba(255, 255, 255, 0.6);
+  box-shadow: var(--shadow);
+  border: 1px solid var(--border);
 }
 
 .transfer-line {
@@ -431,7 +402,6 @@ function copySettlement() {
   font-family: var(--font-display);
   font-weight: 700;
   color: white;
-  box-shadow: 0 3px 8px rgba(0, 0, 0, 0.15);
   letter-spacing: 0.5px;
 }
 
@@ -476,6 +446,7 @@ function copySettlement() {
   background: var(--card-bg);
   border-radius: var(--radius-lg);
   box-shadow: var(--shadow);
+  border: 1px solid var(--border);
 }
 
 .done-icon {

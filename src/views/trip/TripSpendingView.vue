@@ -212,7 +212,7 @@ function getCatAmount(member: MemberSpending, catId: string): string {
   align-items: center;
   gap: 7px;
   padding: 9px 16px;
-  border: 2px solid var(--border);
+  border: 1px solid var(--border);
   border-radius: var(--radius-full);
   font-family: var(--font-display);
   font-size: 14px;
@@ -230,8 +230,8 @@ function getCatAmount(member: MemberSpending, catId: string): string {
 
 .member-tab.active {
   border-color: currentColor;
-  box-shadow: 0 2px 12px rgba(59, 155, 204, 0.12);
-  background: var(--card-bg-soft);
+  box-shadow: var(--shadow);
+  background: var(--card-bg);
 }
 
 .tab-dot {
@@ -239,7 +239,6 @@ function getCatAmount(member: MemberSpending, catId: string): string {
   height: 8px;
   border-radius: 50%;
   flex-shrink: 0;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.12);
 }
 
 /* ===== 成员概览卡片（顶部色条装饰） ===== */
@@ -249,21 +248,9 @@ function getCatAmount(member: MemberSpending, catId: string): string {
   padding: 24px 22px 22px;
   margin: 0 16px 18px;
   box-shadow: var(--shadow);
+  border: 1px solid var(--border);
   position: relative;
   overflow: hidden;
-}
-
-/* 卡片内部右上角装饰光晕 */
-.overview-card::after {
-  content: '';
-  position: absolute;
-  top: -24px;
-  right: -24px;
-  width: 90px;
-  height: 90px;
-  background: radial-gradient(circle, rgba(59, 155, 204, 0.06) 0%, transparent 70%);
-  border-radius: 50%;
-  pointer-events: none;
 }
 
 .overview-name {
@@ -296,6 +283,7 @@ function getCatAmount(member: MemberSpending, catId: string): string {
   padding: 4px 18px;
   margin: 0 16px 18px;
   box-shadow: var(--shadow);
+  border: 1px solid var(--border);
 }
 
 .cat-row {
@@ -313,7 +301,7 @@ function getCatAmount(member: MemberSpending, catId: string): string {
   left: 0;
   right: 0;
   height: 1px;
-  background: linear-gradient(to right, transparent, rgba(59, 155, 204, 0.08), transparent);
+  background: var(--border);
 }
 
 .cat-left {
@@ -422,6 +410,7 @@ function getCatAmount(member: MemberSpending, catId: string): string {
   padding: 6px 18px;
   margin: 0 16px 18px;
   box-shadow: var(--shadow);
+  border: 1px solid var(--border);
 }
 
 .compare-row {
@@ -439,7 +428,7 @@ function getCatAmount(member: MemberSpending, catId: string): string {
   left: 0;
   right: 0;
   height: 1px;
-  background: linear-gradient(to right, transparent, rgba(59, 155, 204, 0.08), transparent);
+  background: var(--border);
 }
 
 .compare-left {
@@ -454,7 +443,6 @@ function getCatAmount(member: MemberSpending, catId: string): string {
   height: 10px;
   border-radius: 50%;
   flex-shrink: 0;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
 }
 
 .compare-name {
@@ -505,12 +493,13 @@ function getCatAmount(member: MemberSpending, catId: string): string {
   padding: 14px;
   margin: 0 16px 24px;
   box-shadow: var(--shadow);
+  border: 1px solid var(--border);
   overflow-x: auto;
 }
 
 .matrix-header {
   display: flex;
-  border-bottom: 2px solid var(--border-light);
+  border-bottom: 1px solid var(--border);
   padding-bottom: 10px;
   margin-bottom: 4px;
 }
@@ -527,7 +516,7 @@ function getCatAmount(member: MemberSpending, catId: string): string {
 }
 
 .matrix-row-alt {
-  background: rgba(59, 155, 204, 0.02);
+  background: rgba(0, 0, 0, 0.02);
   border-radius: 8px;
 }
 
@@ -551,7 +540,6 @@ function getCatAmount(member: MemberSpending, catId: string): string {
   height: 7px;
   border-radius: 50%;
   flex-shrink: 0;
-  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
 }
 
 .label-cell {
