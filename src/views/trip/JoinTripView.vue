@@ -38,8 +38,8 @@
       <div class="join-logo">
         <svg width="64" height="64" viewBox="0 0 64 64" fill="none">
           <circle cx="32" cy="32" r="30" fill="var(--primary-light)" opacity="0.6"/>
-          <path d="M8 32C8 32 20 24 32 24C44 24 56 32 56 32C56 32 44 40 32 40C20 40 8 32 8 32Z" fill="rgba(59,155,204,0.25)"/>
-          <path d="M32 20L36 28H28L32 20Z" fill="rgba(59,155,204,0.5)"/>
+          <path d="M8 32C8 32 20 24 32 24C44 24 56 32 56 32C56 32 44 40 32 40C20 40 8 32 8 32Z" fill="rgba(123,160,91,0.25)"/>
+          <path d="M32 20L36 28H28L32 20Z" fill="rgba(123,160,91,0.5)"/>
           <circle cx="32" cy="32" r="3" fill="var(--primary)"/>
         </svg>
       </div>
@@ -144,7 +144,11 @@ async function handleJoin() {
 /* 加入卡片 */
 .join-card {
   background: var(--card-bg);
-  border: 1px solid var(--border);
+  background-image:
+    radial-gradient(circle at 15% 20%, rgba(123, 160, 91, 0.04) 0%, transparent 45%),
+    radial-gradient(circle at 85% 80%, rgba(224, 120, 86, 0.04) 0%, transparent 45%),
+    repeating-linear-gradient(0deg, transparent, transparent 3px, rgba(92, 74, 58, 0.015) 3px, rgba(92, 74, 58, 0.015) 4px);
+  border: 2px solid var(--border);
   border-radius: var(--radius-xl);
   padding: 48px 28px 36px;
   width: 100%;
@@ -165,8 +169,8 @@ async function handleJoin() {
 /* 标题 */
 .join-title {
   font-family: var(--font-display);
-  font-size: 26px;
-  font-weight: 600;
+  font-size: 28px;
+  font-weight: 700;
   color: var(--text);
   margin-bottom: 8px;
   letter-spacing: -0.01em;
@@ -202,7 +206,7 @@ async function handleJoin() {
 
 .form-group .input:focus {
   border-color: var(--primary);
-  box-shadow: 0 0 0 3px rgba(0, 0, 0, 0.06);
+  box-shadow: 0 0 0 4px rgba(123, 160, 91, 0.1);
   outline: none;
 }
 
@@ -231,7 +235,7 @@ async function handleJoin() {
   background: var(--primary-gradient);
   color: #fff;
   border: none;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.12);
+  box-shadow: 0 3px 10px rgba(123, 160, 91, 0.25);
 }
 
 .btn-primary.btn-block:active:not(:disabled) {

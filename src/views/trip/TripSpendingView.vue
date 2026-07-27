@@ -212,7 +212,7 @@ function getCatAmount(member: MemberSpending, catId: string): string {
   align-items: center;
   gap: 7px;
   padding: 9px 16px;
-  border: 1px solid var(--border);
+  border: 2px solid var(--border);
   border-radius: var(--radius-full);
   font-family: var(--font-display);
   font-size: 14px;
@@ -248,9 +248,23 @@ function getCatAmount(member: MemberSpending, catId: string): string {
   padding: 24px 22px 22px;
   margin: 0 16px 18px;
   box-shadow: var(--shadow);
-  border: 1px solid var(--border);
+  border: 2px dashed var(--border-light);
   position: relative;
   overflow: hidden;
+}
+
+/* 手帐风格：内层虚线点缀装饰 */
+.overview-card::after {
+  content: '';
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  width: 36px;
+  height: 36px;
+  border: 2px dashed var(--border);
+  border-radius: 50%;
+  opacity: 0.6;
+  pointer-events: none;
 }
 
 .overview-name {
@@ -283,7 +297,7 @@ function getCatAmount(member: MemberSpending, catId: string): string {
   padding: 4px 18px;
   margin: 0 16px 18px;
   box-shadow: var(--shadow);
-  border: 1px solid var(--border);
+  border: 2px solid var(--border-light);
 }
 
 .cat-row {
@@ -395,7 +409,7 @@ function getCatAmount(member: MemberSpending, catId: string): string {
 /* ===== Section 标题 ===== */
 .section-title {
   font-family: var(--font-display);
-  font-size: 15px;
+  font-size: 18px;
   font-weight: 700;
   color: var(--text-secondary);
   letter-spacing: 0.02em;
@@ -410,7 +424,7 @@ function getCatAmount(member: MemberSpending, catId: string): string {
   padding: 6px 18px;
   margin: 0 16px 18px;
   box-shadow: var(--shadow);
-  border: 1px solid var(--border);
+  border: 2px solid var(--border-light);
 }
 
 .compare-row {
@@ -493,7 +507,7 @@ function getCatAmount(member: MemberSpending, catId: string): string {
   padding: 14px;
   margin: 0 16px 24px;
   box-shadow: var(--shadow);
-  border: 1px solid var(--border);
+  border: 2px solid var(--border-light);
   overflow-x: auto;
 }
 
@@ -516,7 +530,7 @@ function getCatAmount(member: MemberSpending, catId: string): string {
 }
 
 .matrix-row-alt {
-  background: rgba(0, 0, 0, 0.02);
+  background: rgba(92, 74, 58, 0.02);
   border-radius: 8px;
 }
 

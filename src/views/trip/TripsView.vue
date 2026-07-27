@@ -1,17 +1,26 @@
 <template>
   <div class="trips-page trip-page">
-    <!-- 顶部渐变 Hero -->
+    <!-- 顶部手账封面 -->
     <div class="trips-hero trip-hero-bg">
+      <!-- 装饰涂鸦 -->
+      <svg class="doodle-star" width="24" height="24" viewBox="0 0 24 24" fill="none">
+        <path d="M12 2L14 8L20 10L14 12L12 18L10 12L4 10L10 8Z" fill="var(--accent)" opacity="0.3"/>
+      </svg>
+      <svg class="doodle-leaf" width="30" height="30" viewBox="0 0 30 30" fill="none">
+        <path d="M15 28C15 28 5 20 5 12C5 7 10 3 15 3C20 3 25 7 25 12C25 20 15 28 15 28Z" stroke="var(--primary)" stroke-width="1.5" fill="none" opacity="0.2"/>
+        <path d="M15 5V25" stroke="var(--primary)" stroke-width="1" opacity="0.15"/>
+      </svg>
       <div class="hero-header">
         <div>
-          <h1 class="hero-title">旅行分账</h1>
-          <p class="hero-subtitle">轻松记录，快乐出行</p>
+          <h1 class="hero-title">旅行手账</h1>
+          <p class="hero-subtitle">记录每一段旅程 ✿</p>
         </div>
-        <!-- 装饰飞机 SVG -->
-        <svg class="hero-plane" width="64" height="64" viewBox="0 0 64 64" fill="none">
-          <path d="M8 32C8 32 20 24 32 24C44 24 56 32 56 32C56 32 44 40 32 40C20 40 8 32 8 32Z" fill="rgba(255,255,255,0.25)"/>
-          <path d="M32 20L36 28H28L32 20Z" fill="rgba(255,255,255,0.4)"/>
-          <circle cx="32" cy="32" r="3" fill="rgba(255,255,255,0.5)"/>
+        <!-- 手绘风格旅行图标 -->
+        <svg class="hero-plane" width="56" height="56" viewBox="0 0 56 56" fill="none">
+          <path d="M8 28C8 28 20 22 28 22C36 22 48 28 48 28C48 28 36 34 28 34C20 34 8 28 8 28Z" stroke="var(--primary)" stroke-width="2" fill="rgba(123,160,91,0.1)" stroke-linecap="round"/>
+          <path d="M28 16L32 26H24L28 16Z" stroke="var(--accent)" stroke-width="2" fill="rgba(224,120,86,0.1)" stroke-linecap="round" stroke-linejoin="round"/>
+          <circle cx="28" cy="28" r="2.5" fill="var(--accent)" opacity="0.6"/>
+          <path d="M8 28L4 24M48 28L52 24" stroke="var(--primary)" stroke-width="1.5" stroke-linecap="round" opacity="0.4"/>
         </svg>
       </div>
     </div>
@@ -32,14 +41,17 @@
         <div class="trip-empty-desc">点击下方按钮创建一个旅行<br>轻松管理多人花销</div>
       </div>
 
-      <!-- 旅行卡片 -->
+      <!-- 旅行卡片 - 手账贴纸风格 -->
       <div
         v-for="(trip, idx) in store.trips"
         :key="trip.id"
         class="trip-card trip-animate-in"
+        :class="{ 'tilt-left': idx % 2 === 0, 'tilt-right': idx % 2 === 1 }"
         :style="{ animationDelay: `${idx * 0.08}s` }"
         @click="$router.push(`/trip/${trip.id}`)"
       >
+        <!-- 和纸胶带装饰 -->
+        <div class="washi-tape washi-tape-green" :class="idx % 2 === 0 ? 'tape-tl' : 'tape-tr'"></div>
         <!-- 卡片装饰渐变条 -->
         <div class="trip-card-accent"></div>
         <div class="trip-card-body">
@@ -232,6 +244,9 @@ async function confirmNickname() {
   await store.loadTripById(pendingTripId.value)
   showNickname.value = false
 
+  // 等待弹窗关闭后再提示和跳转
+  await nextTick()
+
   const link = store.getShareLink(store.getTripById(pendingTripId.value)!)
   try {
     await navigator.clipboard.writeText(link)
@@ -249,9 +264,23 @@ async function confirmNickname() {
   padding: 0;
 }
 
-/* ===== Hero 头部 ===== */
+/* ===== Hero 手账封面 ===== */
 .trips-hero {
-  padding: 32px 20px 40px;
+  padding: 36px 20px 40px;
+}
+
+.doodle-star {
+  position: absolute;
+  top: 16px;
+  right: 80px;
+  z-index: 0;
+}
+
+.doodle-leaf {
+  position: absolute;
+  bottom: 12px;
+  right: 24px;
+  z-index: 0;
 }
 
 .hero-header {
@@ -264,16 +293,16 @@ async function confirmNickname() {
 
 .hero-title {
   font-family: var(--font-display);
-  font-size: 30px;
-  font-weight: 600;
+  font-size: 34px;
+  font-weight: 700;
   color: var(--text);
   letter-spacing: -0.01em;
-  line-height: 1.15;
+  line-height: 1.1;
   margin-bottom: 6px;
-  font-style: italic;
 }
 
 .hero-subtitle {
+  font-family: var(--font-body);
   font-size: 14px;
   color: var(--text-secondary);
   font-weight: 400;
@@ -281,7 +310,7 @@ async function confirmNickname() {
 }
 
 .hero-plane {
-  opacity: 0.5;
+  opacity: 0.7;
   flex-shrink: 0;
 }
 
@@ -291,25 +320,39 @@ async function confirmNickname() {
   margin-top: -8px;
 }
 
-/* ===== 旅行卡片 ===== */
+/* ===== 旅行卡片 - 手账贴纸风格 ===== */
 .trip-card {
   position: relative;
   background: var(--card-bg);
   border-radius: var(--radius-lg);
-  margin-bottom: 14px;
+  margin-bottom: 16px;
   overflow: hidden;
   cursor: pointer;
-  border: 1px solid var(--border);
+  border: 2px solid var(--border);
   box-shadow: var(--shadow);
-  transition: transform 0.5s ease, box-shadow 0.5s ease;
+  transition: transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1), box-shadow 0.3s ease;
 }
 
 .trip-card:active {
-  transform: scale(0.99);
+  transform: scale(0.97) rotate(0deg) !important;
+  box-shadow: var(--shadow-lg);
+}
+
+/* 和纸胶带位置 */
+.tape-tl {
+  top: -8px;
+  left: 20px;
+  transform: rotate(-12deg);
+}
+
+.tape-tr {
+  top: -8px;
+  right: 20px;
+  transform: rotate(12deg);
 }
 
 .trip-card-accent {
-  height: 3px;
+  height: 4px;
   background: var(--primary-gradient);
 }
 
@@ -383,9 +426,9 @@ async function confirmNickname() {
   font-size: 13px;
   font-weight: 600;
   color: white;
-  border: 2px solid var(--card-bg);
-  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.06);
-  transition: transform 0.5s ease;
+  border: 2.5px solid var(--card-bg);
+  box-shadow: 0 1px 3px rgba(92, 74, 58, 0.1);
+  transition: transform 0.3s ease;
   font-family: var(--font-display);
 }
 
@@ -394,7 +437,7 @@ async function confirmNickname() {
   color: var(--text-secondary);
   font-size: 11px;
   font-weight: 600;
-  border: 2px solid var(--card-bg);
+  border: 2.5px solid var(--card-bg);
 }
 
 /* ===== FAB ===== */
@@ -406,7 +449,7 @@ async function confirmNickname() {
 .modal-overlay {
   position: fixed;
   inset: 0;
-  background: rgba(0, 0, 0, 0.4);
+  background: rgba(92, 74, 58, 0.4);
   display: flex;
   align-items: flex-end;
   justify-content: center;
@@ -421,7 +464,20 @@ async function confirmNickname() {
   max-width: 480px;
   max-height: 80vh;
   overflow-y: auto;
-  box-shadow: 0 -2px 16px rgba(0, 0, 0, 0.08);
+  box-shadow: 0 -8px 32px rgba(92, 74, 58, 0.12);
+  position: relative;
+}
+
+/* 弹窗顶部装饰条 */
+.modal::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 5px;
+  background: var(--primary-gradient);
+  border-radius: var(--radius-xl) var(--radius-xl) 0 0;
 }
 
 .modal-icon-wrap {
@@ -455,13 +511,12 @@ async function confirmNickname() {
 
 .form-label {
   display: block;
-  font-family: var(--font-display);
-  font-size: 12px;
+  font-family: var(--font-body);
+  font-size: 13px;
   font-weight: 600;
   color: var(--text-secondary);
   margin-bottom: 8px;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
+  letter-spacing: 0.02em;
 }
 
 /* 货币选择 */
@@ -469,7 +524,7 @@ async function confirmNickname() {
   width: 100%;
   appearance: none;
   -webkit-appearance: none;
-  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%237A8BA0' d='M6 8L1 3h10z'/%3E%3C/svg%3E");
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%23A0927E' d='M6 8L1 3h10z'/%3E%3C/svg%3E");
   background-repeat: no-repeat;
   background-position: right 12px center;
   padding-right: 32px;
@@ -485,25 +540,27 @@ async function confirmNickname() {
   flex: 1;
   padding: 14px;
   border-radius: var(--radius);
-  font-family: var(--font-display);
-  font-weight: 600;
+  font-family: var(--font-body);
+  font-weight: 700;
   font-size: 15px;
-  transition: transform 0.5s ease;
+  transition: transform 0.2s cubic-bezier(0.34, 1.56, 0.64, 1);
 }
 
 .modal-actions .btn:active {
-  transform: scale(0.98);
+  transform: scale(0.96);
 }
 
 .modal-actions .btn-primary {
   background: var(--primary-gradient);
   color: #fff;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.12);
+  box-shadow: 0 3px 10px rgba(123, 160, 91, 0.25);
+  border: none;
 }
 
 .modal-actions .btn-ghost {
   color: var(--text-secondary);
   font-weight: 600;
+  background: var(--bg);
 }
 
 /* 昵称弹窗 */
@@ -520,13 +577,15 @@ async function confirmNickname() {
   font-size: 20px;
   padding: 14px;
   font-weight: 600;
-  border: 1px solid var(--border);
-  transition: border-color 0.2s ease;
+  border: 2px solid var(--border);
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+  border-radius: var(--radius);
 }
 
 .nickname-input:focus {
   border-color: var(--primary);
-  box-shadow: 0 0 0 3px rgba(0, 0, 0, 0.06);
+  box-shadow: 0 0 0 4px rgba(123, 160, 91, 0.1);
+  outline: none;
 }
 
 /* 弹窗动画 */

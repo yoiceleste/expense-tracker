@@ -581,7 +581,7 @@ async function save() {
   align-items: center;
   justify-content: center;
   color: var(--text);
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
+  box-shadow: 0 1px 3px rgba(92, 74, 58, 0.04);
   transition: transform 0.2s ease, box-shadow 0.2s ease;
 }
 
@@ -628,7 +628,7 @@ async function save() {
 
 .draft-discard {
   border: none;
-  background: rgba(0, 0, 0, 0.06);
+  background: rgba(92, 74, 58, 0.06);
   color: var(--text-secondary);
   font-size: 12px;
   font-weight: 600;
@@ -639,7 +639,7 @@ async function save() {
 }
 
 .draft-discard:active {
-  background: rgba(0, 0, 0, 0.1);
+  background: rgba(92, 74, 58, 0.1);
 }
 
 /* ===== 金额卡片 ===== */
@@ -673,7 +673,7 @@ async function save() {
   flex: 1;
   border: none;
   outline: none;
-  font-family: var(--font-display);
+  font-family: var(--font-body);
   font-size: 26px;
   font-weight: 700;
   background: transparent;
@@ -681,7 +681,7 @@ async function save() {
 }
 
 .foreign-input::placeholder {
-  color: rgba(0, 0, 0, 0.25);
+  color: rgba(92, 74, 58, 0.25);
 }
 
 .foreign-code {
@@ -731,7 +731,7 @@ async function save() {
   flex: 1;
   border: none;
   outline: none;
-  font-family: var(--font-display);
+  font-family: var(--font-body);
   font-size: 42px;
   font-weight: 800;
   background: transparent;
@@ -740,12 +740,13 @@ async function save() {
 }
 
 .amount-input::placeholder {
-  color: rgba(0, 0, 0, 0.25);
+  color: rgba(92, 74, 58, 0.25);
 }
 
 /* ===== 卡片通用 ===== */
 .card {
   background: var(--card-bg);
+  border: 2px solid var(--border-light);
   border-radius: var(--radius);
   padding: 18px;
   margin-bottom: 14px;
@@ -766,7 +767,7 @@ async function save() {
 
 .toggle-all {
   border: none;
-  background: rgba(0, 0, 0, 0.05);
+  background: rgba(92, 74, 58, 0.05);
   color: var(--primary);
   font-size: 12px;
   font-weight: 600;
@@ -777,7 +778,7 @@ async function save() {
 }
 
 .toggle-all:active {
-  background: rgba(0, 0, 0, 0.1);
+  background: rgba(92, 74, 58, 0.1);
 }
 
 /* ===== 成员选择器 chip ===== */
@@ -809,7 +810,7 @@ async function save() {
 .picker-chip.active {
   color: white;
   border-color: transparent;
-  box-shadow: 0 3px 10px rgba(0, 0, 0, 0.12);
+  box-shadow: 0 3px 10px rgba(92, 74, 58, 0.12);
 }
 
 .chip-dot {
@@ -827,7 +828,7 @@ async function save() {
   border-radius: 24px;
   padding: 3px;
   margin-top: 14px;
-  box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.04);
+  box-shadow: inset 0 1px 3px rgba(92, 74, 58, 0.04);
 }
 
 .mode-btn {
@@ -846,7 +847,7 @@ async function save() {
 .mode-btn.active {
   background: var(--primary-gradient);
   color: white;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.12);
+  box-shadow: 0 2px 8px rgba(92, 74, 58, 0.12);
 }
 
 /* ===== 均摊提示 ===== */
@@ -909,7 +910,7 @@ async function save() {
 
 .custom-input-wrap:focus-within {
   border-color: var(--primary);
-  box-shadow: 0 0 0 3px rgba(0, 0, 0, 0.08);
+  box-shadow: 0 0 0 4px rgba(123, 160, 91, 0.1);
 }
 
 .custom-currency {
@@ -925,7 +926,7 @@ async function save() {
   border: none;
   outline: none;
   background: transparent;
-  font-family: var(--font-display);
+  font-family: var(--font-body);
   font-size: 16px;
   font-weight: 700;
   text-align: right;
@@ -997,9 +998,9 @@ async function save() {
 }
 
 .cat-item.active {
-  background: rgba(0, 0, 0, 0.03);
+  background: rgba(92, 74, 58, 0.03);
   border-color: var(--primary);
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+  box-shadow: 0 2px 8px rgba(92, 74, 58, 0.08);
 }
 
 .cat-icon {
@@ -1057,7 +1058,7 @@ async function save() {
 
 .input:focus {
   border-color: var(--primary);
-  box-shadow: 0 0 0 3px rgba(0, 0, 0, 0.08);
+  box-shadow: 0 0 0 4px rgba(123, 160, 91, 0.1);
 }
 
 .input::placeholder {
@@ -1078,7 +1079,7 @@ async function save() {
   height: 84px;
   border-radius: var(--radius);
   overflow: hidden;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+  box-shadow: 0 2px 8px rgba(92, 74, 58, 0.06);
 }
 
 .image-preview {
@@ -1100,7 +1101,7 @@ async function save() {
   width: 24px;
   height: 24px;
   border: none;
-  background: rgba(0, 0, 0, 0.45);
+  background: rgba(92, 74, 58, 0.5);
   color: white;
   border-radius: 50%;
   font-size: 12px;
@@ -1113,7 +1114,7 @@ async function save() {
 }
 
 .image-remove:active {
-  background: rgba(0, 0, 0, 0.65);
+  background: rgba(92, 74, 58, 0.65);
 }
 
 .image-add {
@@ -1133,7 +1134,7 @@ async function save() {
 
 .image-add:active {
   border-color: var(--primary);
-  background: rgba(0, 0, 0, 0.04);
+  background: rgba(92, 74, 58, 0.04);
   transform: scale(0.95);
 }
 
@@ -1179,10 +1180,10 @@ async function save() {
 
 .pm-chip.active {
   border-color: var(--primary);
-  background: rgba(0, 0, 0, 0.03);
+  background: rgba(92, 74, 58, 0.03);
   color: var(--primary);
   font-weight: 600;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+  box-shadow: 0 2px 8px rgba(92, 74, 58, 0.08);
 }
 
 /* ===== 保存按钮 ===== */
@@ -1195,7 +1196,7 @@ async function save() {
   border-radius: var(--radius);
   background: var(--primary-gradient);
   color: white;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.12);
+  box-shadow: 0 4px 12px rgba(92, 74, 58, 0.12);
   border: none;
   letter-spacing: 0.5px;
   transition: all 0.25s ease;
@@ -1203,7 +1204,7 @@ async function save() {
 
 .save-btn:active {
   transform: scale(0.97);
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  box-shadow: 0 2px 8px rgba(92, 74, 58, 0.1);
 }
 
 /* ===== 动画 ===== */

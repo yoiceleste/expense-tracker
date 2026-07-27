@@ -51,8 +51,8 @@
         <path d="M24 36 L32 44 L48 28" stroke="var(--primary)" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
         <defs>
           <linearGradient id="doneGrad" x1="4" y1="4" x2="68" y2="68" gradientUnits="userSpaceOnUse">
-            <stop stop-color="#3B9BCC"/>
-            <stop offset="1" stop-color="#4ECDC4"/>
+            <stop stop-color="#7BA05B"/>
+            <stop offset="1" stop-color="#9BC46B"/>
           </linearGradient>
         </defs>
       </svg>
@@ -213,16 +213,17 @@ function copySettlement() {
   width: 38px;
 }
 
-/* ===== 概览卡片（纯黑背景白字） ===== */
+/* ===== 概览卡片（手帐风主色渐变背景） ===== */
 .summary-card {
   text-align: center;
   padding: 28px 24px 24px;
-  background: #1A1A1A;
+  background: var(--primary-gradient);
   border-radius: var(--radius-lg);
   margin-bottom: 22px;
   box-shadow: var(--shadow);
   position: relative;
   overflow: hidden;
+  border: 2px solid var(--border-light);
 }
 
 .summary-total {
@@ -245,7 +246,7 @@ function copySettlement() {
 /* ===== 收支明细 ===== */
 .section-title {
   font-family: var(--font-display);
-  font-size: 15px;
+  font-size: 18px;
   font-weight: 700;
   color: var(--text-secondary);
   margin-bottom: 12px;
@@ -264,8 +265,8 @@ function copySettlement() {
   align-items: center;
   gap: 5px;
   padding: 7px 16px;
-  border: none;
-  background: var(--primary-gradient);
+  border: 2px solid var(--accent);
+  background: var(--accent);
   color: white;
   border-radius: 20px;
   font-size: 12px;
@@ -278,7 +279,7 @@ function copySettlement() {
 
 .copy-btn:active {
   transform: scale(0.95);
-  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.06);
+  box-shadow: 0 1px 2px rgba(92, 74, 58, 0.06);
 }
 
 /* ===== 余额列表 ===== */
@@ -288,7 +289,7 @@ function copySettlement() {
   padding: 6px 18px;
   margin-bottom: 22px;
   box-shadow: var(--shadow);
-  border: 1px solid var(--border);
+  border: 2px solid var(--border-light);
 }
 
 .balance-item {
@@ -375,7 +376,7 @@ function copySettlement() {
   padding: 22px;
   margin-bottom: 12px;
   box-shadow: var(--shadow);
-  border: 1px solid var(--border);
+  border: 2px solid var(--border-light);
 }
 
 .transfer-line {
@@ -446,7 +447,7 @@ function copySettlement() {
   background: var(--card-bg);
   border-radius: var(--radius-lg);
   box-shadow: var(--shadow);
-  border: 1px solid var(--border);
+  border: 2px solid var(--border-light);
 }
 
 .done-icon {

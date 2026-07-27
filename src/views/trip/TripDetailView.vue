@@ -444,12 +444,11 @@ async function confirmDelete(id: string) {
 
 .hero-meta {
   font-family: var(--font-display);
-  font-style: italic;
-  font-size: 22px;
-  font-weight: 800;
+  font-size: 20px;
+  font-weight: 600;
   color: var(--text);
-  letter-spacing: -0.02em;
-  line-height: 1.2;
+  letter-spacing: -0.01em;
+  line-height: 1.3;
   margin-bottom: 10px;
 }
 
@@ -463,13 +462,14 @@ async function confirmDelete(id: string) {
   display: inline-flex;
   align-items: center;
   gap: 5px;
-  background: var(--card-bg-soft);
+  background: var(--card-bg);
   padding: 5px 12px;
   border-radius: var(--radius-full);
   font-size: 13px;
   font-weight: 600;
   color: var(--text-secondary);
-  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.04);
+  box-shadow: 0 1px 4px rgba(92, 74, 58, 0.06);
+  border: 1.5px solid var(--border-light);
 }
 
 .hero-stat-badge svg {
@@ -491,19 +491,19 @@ async function confirmDelete(id: string) {
 .icon-btn {
   width: 40px;
   height: 40px;
-  border: none;
-  background: var(--card-bg-soft);
+  border: 1.5px solid var(--border-light);
+  background: var(--card-bg);
   border-radius: var(--radius);
   cursor: pointer;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+  box-shadow: 0 2px 6px rgba(92, 74, 58, 0.05);
   display: flex;
   align-items: center;
   justify-content: center;
-  transition: transform 0.15s ease;
+  transition: transform 0.2s cubic-bezier(0.34, 1.56, 0.64, 1);
 }
 
 .icon-btn:active {
-  transform: scale(0.93);
+  transform: scale(0.92) rotate(-5deg);
 }
 
 /* ===== 汇率信息栏 - 磨砂玻璃 ===== */
@@ -590,12 +590,12 @@ async function confirmDelete(id: string) {
   border: 2px solid;
   flex-shrink: 0;
   box-shadow: var(--shadow);
-  transition: transform 0.15s ease;
+  transition: transform 0.2s cubic-bezier(0.34, 1.56, 0.64, 1);
   cursor: pointer;
 }
 
 .member-chip:active {
-  transform: scale(0.96);
+  transform: scale(0.94) rotate(-2deg);
 }
 
 .chip-avatar {
@@ -608,8 +608,9 @@ async function confirmDelete(id: string) {
   font-size: 12px;
   font-weight: 700;
   color: white;
-  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.1);
+  box-shadow: 0 1px 3px rgba(92, 74, 58, 0.1);
   font-family: var(--font-display);
+  border: 2px solid var(--card-bg);
 }
 
 .add-avatar {
@@ -633,11 +634,11 @@ async function confirmDelete(id: string) {
   border-style: dashed;
 }
 
-/* ===== 弹窗 - TripsView 一致风格 ===== */
+/* ===== 弹窗 - 手账风格 ===== */
 .modal-overlay {
   position: fixed;
   inset: 0;
-  background: rgba(0, 0, 0, 0.4);
+  background: rgba(92, 74, 58, 0.4);
   display: flex;
   align-items: flex-end;
   justify-content: center;
@@ -652,7 +653,19 @@ async function confirmDelete(id: string) {
   max-width: 480px;
   max-height: 80vh;
   overflow-y: auto;
-  box-shadow: 0 -8px 32px rgba(0, 0, 0, 0.12);
+  box-shadow: 0 -8px 32px rgba(92, 74, 58, 0.12);
+  position: relative;
+}
+
+.modal::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 5px;
+  background: var(--primary-gradient);
+  border-radius: var(--radius-xl) var(--radius-xl) 0 0;
 }
 
 .modal-icon-wrap {
@@ -663,8 +676,8 @@ async function confirmDelete(id: string) {
 
 .modal-title {
   font-family: var(--font-display);
-  font-size: 20px;
-  font-weight: 800;
+  font-size: 22px;
+  font-weight: 700;
   text-align: center;
   margin-bottom: 4px;
   color: var(--text);
@@ -675,7 +688,7 @@ async function confirmDelete(id: string) {
 }
 
 .modal-input {
-  font-family: var(--font-display);
+  font-family: var(--font-body);
   font-size: 16px;
   padding: 14px 16px;
   border-radius: var(--radius);
@@ -686,7 +699,7 @@ async function confirmDelete(id: string) {
 
 .modal-input:focus {
   border-color: var(--primary);
-  box-shadow: 0 0 0 4px rgba(0, 0, 0, 0.08);
+  box-shadow: 0 0 0 4px rgba(123, 160, 91, 0.1);
   outline: none;
 }
 
@@ -700,19 +713,19 @@ async function confirmDelete(id: string) {
   flex: 1;
   padding: 14px;
   border-radius: var(--radius);
-  font-family: var(--font-display);
+  font-family: var(--font-body);
   font-weight: 700;
   font-size: 15px;
-  transition: transform 0.15s ease;
+  transition: transform 0.2s cubic-bezier(0.34, 1.56, 0.64, 1);
 }
 
 .modal-actions .btn:active {
-  transform: scale(0.97);
+  transform: scale(0.96);
 }
 
 .modal-actions .btn-primary {
   background: var(--primary-gradient);
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.12);
+  box-shadow: 0 3px 10px rgba(123, 160, 91, 0.25);
   border: none;
 }
 
@@ -720,7 +733,7 @@ async function confirmDelete(id: string) {
   color: var(--text-secondary);
   font-weight: 600;
   border: none;
-  background: transparent;
+  background: var(--bg);
 }
 
 .modal-actions .btn-danger {
@@ -774,7 +787,7 @@ async function confirmDelete(id: string) {
   gap: 10px;
   padding: 18px 8px 16px;
   background: var(--card-bg);
-  border: none;
+  border: 2px solid var(--border-light);
   border-radius: var(--radius-lg);
   cursor: pointer;
   box-shadow: var(--shadow);
@@ -784,24 +797,7 @@ async function confirmDelete(id: string) {
 }
 
 .action-card:active {
-  transform: scale(0.96);
-}
-
-/* 卡片顶部渐变装饰条 */
-.action-card::before {
-  content: '';
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  height: 3px;
-  background: var(--primary-gradient);
-  opacity: 0;
-  transition: opacity 0.2s ease;
-}
-
-.action-card:active::before {
-  opacity: 1;
+  transform: scale(0.95) rotate(-1deg);
 }
 
 .action-icon-wrap {
@@ -815,21 +811,21 @@ async function confirmDelete(id: string) {
 
 .action-icon-write {
   background: var(--primary-gradient);
-  box-shadow: 0 3px 10px rgba(0, 0, 0, 0.12);
+  box-shadow: 0 3px 8px rgba(123, 160, 91, 0.2);
 }
 
 .action-icon-settle {
-  background: var(--primary-gradient);
-  box-shadow: 0 3px 10px rgba(0, 0, 0, 0.12);
+  background: linear-gradient(135deg, var(--accent), #F09A6E);
+  box-shadow: 0 3px 8px rgba(224, 120, 86, 0.2);
 }
 
 .action-icon-chart {
-  background: var(--primary-gradient);
-  box-shadow: 0 3px 10px rgba(0, 0, 0, 0.12);
+  background: linear-gradient(135deg, #8B7DB8, #B8A0D4);
+  box-shadow: 0 3px 8px rgba(139, 125, 184, 0.2);
 }
 
 .action-text {
-  font-family: var(--font-display);
+  font-family: var(--font-body);
   font-size: 13px;
   font-weight: 700;
   color: var(--text);
@@ -838,11 +834,10 @@ async function confirmDelete(id: string) {
 /* ===== 消费列表 ===== */
 .section-title {
   font-family: var(--font-display);
-  font-style: italic;
-  font-size: 15px;
+  font-size: 18px;
   font-weight: 700;
   color: var(--text-secondary);
-  letter-spacing: 0.02em;
+  letter-spacing: 0.01em;
   padding: 0 16px;
   margin-bottom: 12px;
 }
@@ -867,28 +862,31 @@ async function confirmDelete(id: string) {
 }
 
 .date-dot {
-  width: 8px;
-  height: 8px;
+  width: 10px;
+  height: 10px;
   border-radius: 50%;
-  background: var(--primary-gradient);
+  background: var(--primary);
   flex-shrink: 0;
+  border: 2px solid var(--card-bg);
+  box-shadow: 0 0 0 1.5px var(--primary-light);
 }
 
 .date-label {
   font-family: var(--font-display);
-  font-size: 14px;
+  font-size: 16px;
   font-weight: 700;
   color: var(--text);
 }
 
 .date-total {
   font-family: var(--font-display);
-  font-size: 14px;
+  font-size: 15px;
   color: var(--text-secondary);
   font-weight: 700;
   background: var(--bg);
-  padding: 3px 10px;
+  padding: 3px 12px;
   border-radius: var(--radius-full);
+  border: 1.5px dashed var(--border);
 }
 
 /* 消费项 */
@@ -898,12 +896,12 @@ async function confirmDelete(id: string) {
   padding: 14px 16px;
   margin-bottom: 8px;
   box-shadow: var(--shadow);
-  border: 1px solid var(--border-light);
+  border: 1.5px solid var(--border-light);
   transition: transform 0.2s cubic-bezier(0.34, 1.56, 0.64, 1);
 }
 
 .expense-item:active {
-  transform: scale(0.985);
+  transform: scale(0.98) rotate(-0.5deg);
 }
 
 .expense-top {
@@ -939,7 +937,7 @@ async function confirmDelete(id: string) {
 }
 
 .expense-title {
-  font-family: var(--font-display);
+  font-family: var(--font-body);
   font-size: 15px;
   font-weight: 700;
   color: var(--text);
@@ -963,8 +961,8 @@ async function confirmDelete(id: string) {
 
 .expense-amount {
   font-family: var(--font-display);
-  font-size: 16px;
-  font-weight: 800;
+  font-size: 18px;
+  font-weight: 700;
   color: var(--text);
   margin-right: 2px;
 }
@@ -1064,14 +1062,14 @@ async function confirmDelete(id: string) {
   right: 20px;
   width: 56px;
   height: 56px;
-  border: none;
+  border: 3px solid var(--card-bg);
   background: var(--primary-gradient);
   color: white;
-  border-radius: var(--radius);
+  border-radius: 50%;
   font-size: 28px;
   font-weight: 300;
   cursor: pointer;
-  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.12);
+  box-shadow: 0 4px 16px rgba(123, 160, 91, 0.3);
   transition: transform 0.2s cubic-bezier(0.34, 1.56, 0.64, 1);
   display: flex;
   align-items: center;
@@ -1080,7 +1078,7 @@ async function confirmDelete(id: string) {
 }
 
 .fab-add:active {
-  transform: scale(0.90);
+  transform: scale(0.88) rotate(90deg);
 }
 
 @media (min-width: 480px) {
