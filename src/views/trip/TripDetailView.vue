@@ -190,6 +190,15 @@
         </div>
         <span class="action-text">消费结构</span>
       </button>
+      <button class="action-card" @click="$router.push(`/trip/${tripId}/summary`)">
+        <div class="action-icon-wrap action-icon-summary">
+          <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
+            <path d="M3 5C3 3.9 3.9 3 5 3H15C16.1 3 17 3.9 17 5V15C17 16.1 16.1 17 15 17H5C3.9 17 3 16.1 3 15V5Z" stroke="white" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+            <path d="M6 8H14M6 11H14M6 14H11" stroke="white" stroke-width="1.5" stroke-linecap="round"/>
+          </svg>
+        </div>
+        <span class="action-text">旅行总结</span>
+      </button>
     </div>
 
     <!-- 消费列表 -->
@@ -911,6 +920,11 @@ async function confirmDelete(id: string) {
 .action-icon-chart {
   background: linear-gradient(135deg, #8B7DB8, #B8A0D4);
   box-shadow: 0 3px 8px rgba(139, 125, 184, 0.2);
+}
+
+.action-icon-summary {
+  background: linear-gradient(135deg, #E8A87C, #F5C5A0);
+  box-shadow: 0 3px 8px rgba(232, 168, 124, 0.2);
 }
 
 .action-text {

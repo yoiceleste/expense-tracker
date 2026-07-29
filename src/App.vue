@@ -15,10 +15,6 @@
         </router-view>
       </div>
       <nav v-if="showBottomNav" class="bottom-nav">
-        <router-link to="/home" class="nav-item" :class="{ active: $route.path === '/home' }">
-          <span class="nav-icon">🏠</span>
-          <span class="nav-label">首页</span>
-        </router-link>
         <router-link to="/trips" class="nav-item" :class="{ active: $route.path === '/trips' }">
           <span class="nav-icon">✈️</span>
           <span class="nav-label">旅行</span>
@@ -26,10 +22,6 @@
         <a class="nav-item add-btn" @click="onAddClick">
           <span class="add-icon">+</span>
         </a>
-        <router-link to="/stats" class="nav-item" :class="{ active: $route.path === '/stats' }">
-          <span class="nav-icon">📊</span>
-          <span class="nav-label">统计</span>
-        </router-link>
         <router-link to="/settings" class="nav-item" :class="{ active: $route.path === '/settings' }">
           <span class="nav-icon">⚙️</span>
           <span class="nav-label">设置</span>
@@ -42,13 +34,11 @@
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
-import { useExpenseStore } from './stores/expense'
 import { useTripStore } from './stores/trip'
 import { getSession } from './lib/auth'
 
 const route = useRoute()
 const router = useRouter()
-const expenseStore = useExpenseStore()
 const tripStore = useTripStore()
 
 const loading = ref(true)
@@ -59,23 +49,14 @@ const showBottomNav = computed(() => {
 })
 
 function onAddClick() {
-  const path = route.path
-  if (path === '/trips') {
-    router.push({ path: '/trips', query: { create: '1' } })
-    return
-  }
-  router.push('/add')
+  router.push({ path: '/trips', query: { create: '1' } })
 }
 
 onMounted(async () => {
   try {
     const session = await getSession()
     if (session) {
-      // 已登录，初始化数据
-      await Promise.all([
-        expenseStore.init(),
-        tripStore.init(),
-      ])
+      await tripStore.init()
     }
   } catch (err) {
     console.error('App init error:', err)

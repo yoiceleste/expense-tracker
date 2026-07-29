@@ -15,31 +15,6 @@ const router = createRouter({
       redirect: '/trips',
     },
     {
-      path: '/home',
-      name: 'Home',
-      component: () => import('../views/HomeView.vue'),
-    },
-    {
-      path: '/add',
-      name: 'AddRecord',
-      component: () => import('../views/AddRecordView.vue'),
-    },
-    {
-      path: '/records',
-      name: 'Records',
-      component: () => import('../views/RecordsView.vue'),
-    },
-    {
-      path: '/stats',
-      name: 'Stats',
-      component: () => import('../views/StatsView.vue'),
-    },
-    {
-      path: '/budget',
-      name: 'Budget',
-      component: () => import('../views/BudgetView.vue'),
-    },
-    {
       path: '/settings',
       name: 'Settings',
       component: () => import('../views/SettingsView.vue'),
@@ -79,6 +54,12 @@ const router = createRouter({
       path: '/trip/:id/spending',
       name: 'TripSpending',
       component: () => import('../views/trip/TripSpendingView.vue'),
+      meta: { public: true },
+    },
+    {
+      path: '/trip/:id/summary',
+      name: 'TripSummary',
+      component: () => import('../views/trip/TripSummaryView.vue'),
       meta: { public: true },
     },
   ],
