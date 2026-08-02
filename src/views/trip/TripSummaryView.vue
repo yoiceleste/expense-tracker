@@ -14,7 +14,7 @@
       <div class="washi-tape washi-tape-green" style="top: 12px; left: 30px; transform: rotate(-8deg);"></div>
       <div class="washi-tape washi-tape-orange" style="top: 8px; right: 36px; transform: rotate(6deg);"></div>
 
-      <!-- 1. 基础信息 -->
+      <!-- 1. 封面：旅行氛围 -->
       <div class="summary-hero">
         <div class="hero-decor">✿</div>
         <h1 class="summary-trip-name">{{ trip?.name }}</h1>
@@ -24,11 +24,30 @@
           <span class="meta-pill">{{ trip?.members.length || 0 }} 人同行</span>
           <span v-if="expenseCount > 0" class="meta-pill">{{ expenseCount }} 笔消费</span>
         </div>
+
+        <!-- 旅行总结文案 -->
+        <div v-if="taglineText" class="summary-tagline">{{ taglineText }}</div>
+
+        <!-- 同行伙伴 -->
+        <div v-if="trip?.members?.length" class="summary-companions">
+          <div class="companions-label">同行伙伴</div>
+          <div class="companions-avatars">
+            <div
+              v-for="member in trip.members"
+              :key="member.id"
+              class="companion-avatar"
+              :style="{ background: member.color }"
+            >
+              {{ member.name.charAt(0) }}
+            </div>
+          </div>
+          <div class="companions-names">{{ trip.members.map(m => m.name).join(' · ') }}</div>
+        </div>
       </div>
 
-      <!-- 2. 消费概览 -->
+      <!-- 2. 旅行账单（弱化金额） -->
       <div v-if="expenseCount > 0" class="summary-section">
-        <div class="summary-section-title">消费概览</div>
+        <div class="summary-section-title">旅行账单</div>
         <div class="overview-card">
           <div class="overview-total">
             <span class="overview-label">总消费</span>
@@ -55,7 +74,7 @@
             <div class="cat-bar-content">
               <div class="cat-bar-header">
                 <span class="cat-bar-name">{{ cat.name }}</span>
-                <span class="cat-bar-amount">¥{{ formatMoney(cat.amount) }} · {{ cat.percent }}%</span>
+                <span class="cat-bar-amount">{{ cat.percent }}%</span>
               </div>
               <div class="cat-bar-track">
                 <div class="cat-bar-fill" :style="{ width: cat.percent + '%', background: cat.color }"></div>
@@ -65,18 +84,23 @@
         </div>
       </div>
 
-      <!-- 3. 消费亮点 -->
+      <!-- 3. 旅行亮点（纪念风格） -->
       <div v-if="highlights.length > 0" class="summary-section">
         <div class="summary-section-title">旅行亮点</div>
         <div class="highlights-grid">
-          <div v-for="(h, i) in highlights" :key="i" class="highlight-chip" :style="{ borderColor: h.color }">
+          <div
+            v-for="(h, i) in highlights"
+            :key="i"
+            class="highlight-stamp"
+            :style="{ borderColor: h.color, '--stamp-rot': i % 2 === 0 ? '-2deg' : '1.5deg' }"
+          >
             <span class="highlight-emoji">{{ h.icon }}</span>
             <span class="highlight-text">{{ h.text }}</span>
           </div>
         </div>
       </div>
 
-      <!-- 4. 图片时间线 -->
+      <!-- 4. 旅行回忆（图片为主角） -->
       <div v-if="photoExpenses.length > 0" class="summary-section">
         <div class="summary-section-title">旅行回忆</div>
         <div class="photo-timeline">
@@ -84,21 +108,35 @@
             <div class="photo-timeline-dot"></div>
             <div class="photo-timeline-date">{{ formatDate(exp.date) }}</div>
             <div class="photo-timeline-card">
+              <!-- 大图为主角 -->
               <img :src="exp.images[0]" class="photo-timeline-img" />
+              <!-- 信息区：备注 > 分类 > 金额（辅助） -->
               <div class="photo-timeline-info">
-                <span class="photo-timeline-amount">¥{{ formatMoney(exp.cnyAmount) }}</span>
                 <span v-if="exp.note" class="photo-timeline-note">{{ exp.note }}</span>
+                <div class="photo-timeline-meta">
+                  <span v-if="exp.categoryName" class="photo-timeline-cat">
+                    {{ exp.categoryIcon }} {{ exp.categoryName }}
+                  </span>
+                  <span class="photo-timeline-amount">¥{{ formatMoney(exp.cnyAmount) }}</span>
+                </div>
               </div>
             </div>
           </div>
         </div>
       </div>
 
-      <!-- 无消费时的空状态 -->
-      <div v-if="expenseCount === 0" class="summary-empty">
-        <div class="summary-empty-icon">📓</div>
-        <div class="summary-empty-text">还没有消费记录</div>
-        <div class="summary-empty-desc">记账后再来看看旅行总结吧</div>
+      <!-- 5. Ending 结束语 -->
+      <div v-if="expenseCount > 0" class="summary-ending">
+        <div class="ending-decor">✿</div>
+        <div class="ending-text">
+          <template v-if="duration > 0">{{ duration }} 天里，</template>
+          <template v-else>这趟旅行里，</template>
+          你们共同留下了 {{ expenseCount }} 条消费记录。
+        </div>
+        <div class="ending-subtext">
+          这些数字，<br>也是这趟旅行的一部分回忆。
+        </div>
+        <div class="ending-bye">期待下一次一起出发 ✈</div>
       </div>
 
       <!-- 底部品牌 -->
@@ -171,7 +209,14 @@ const duration = computed(() => {
 
 const expenseCount = computed(() => trip.value?.expenses.length || 0)
 
-// ===== 消费概览 =====
+// ===== 旅行总结文案 =====
+const taglineText = computed(() => {
+  if (duration.value === 0 || expenseCount.value === 0) return ''
+  const name = trip.value?.name || '旅行'
+  return `一场持续 ${duration.value} 天的${name}，\n留下了 ${expenseCount.value} 笔共同消费记录。`
+})
+
+// ===== 旅行账单 =====
 const totalCny = computed(() => {
   if (!trip.value) return 0
   return store.getTripTotalCny(trip.value)
@@ -236,7 +281,7 @@ const categoryBreakdown = computed<CategoryBreakdownItem[]>(() => {
     .sort((a, b) => b.amount - a.amount)
 })
 
-// ===== 消费亮点（纯数据驱动） =====
+// ===== 旅行亮点（纯数据驱动） =====
 interface Highlight {
   icon: string
   text: string
@@ -315,19 +360,26 @@ interface PhotoExpense {
   images: string[]
   note: string
   cnyAmount: number
+  categoryName: string
+  categoryIcon: string
 }
 
 const photoExpenses = computed<PhotoExpense[]>(() => {
   if (!trip.value) return []
   return trip.value.expenses
     .filter(e => e.images && e.images.length > 0)
-    .map(e => ({
-      id: e.id,
-      date: e.date,
-      images: e.images,
-      note: e.note || '',
-      cnyAmount: store.toCnyAmount(e.amount, store.getExpenseCurrency(e, trip.value!)),
-    }))
+    .map(e => {
+      const cat = store.categories.find(c => c.id === e.categoryId)
+      return {
+        id: e.id,
+        date: e.date,
+        images: e.images,
+        note: e.note || '',
+        cnyAmount: store.toCnyAmount(e.amount, store.getExpenseCurrency(e, trip.value!)),
+        categoryName: cat?.name || '',
+        categoryIcon: cat?.icon || '',
+      }
+    })
     .sort((a, b) => a.date.localeCompare(b.date))
 })
 
@@ -434,6 +486,59 @@ onMounted(async () => {
   border-radius: 20px;
 }
 
+/* 旅行总结文案 */
+.summary-tagline {
+  font-family: var(--font-display);
+  font-size: 15px;
+  color: var(--text-secondary);
+  line-height: 1.8;
+  margin-top: 16px;
+  padding: 0 12px;
+  white-space: pre-line;
+}
+
+/* 同行伙伴 */
+.summary-companions {
+  margin-top: 20px;
+  padding-top: 16px;
+  border-top: 1px dashed var(--border-light);
+}
+
+.companions-label {
+  font-size: 12px;
+  color: var(--text-tertiary);
+  margin-bottom: 10px;
+  letter-spacing: 1px;
+}
+
+.companions-avatars {
+  display: flex;
+  justify-content: center;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+
+.companion-avatar {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: var(--font-display);
+  font-size: 16px;
+  font-weight: 700;
+  color: white;
+  border: 2px solid var(--card-bg);
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
+}
+
+.companions-names {
+  font-size: 13px;
+  color: var(--text-secondary);
+  font-weight: 600;
+}
+
 /* ===== 通用 section ===== */
 .summary-section {
   padding: 20px 0;
@@ -461,7 +566,7 @@ onMounted(async () => {
   font-size: 16px;
 }
 
-/* ===== 2. 消费概览 ===== */
+/* ===== 2. 旅行账单 ===== */
 .overview-card {
   background: var(--primary-gradient-soft);
   border-radius: var(--radius-lg);
@@ -485,8 +590,8 @@ onMounted(async () => {
 
 .overview-amount {
   font-family: var(--font-body);
-  font-size: 36px;
-  font-weight: 800;
+  font-size: 28px;
+  font-weight: 700;
   color: var(--primary);
 }
 
@@ -521,8 +626,8 @@ onMounted(async () => {
 
 .sub-value {
   font-family: var(--font-body);
-  font-size: 18px;
-  font-weight: 700;
+  font-size: 16px;
+  font-weight: 600;
   color: var(--text);
 }
 
@@ -564,7 +669,7 @@ onMounted(async () => {
 
 .cat-bar-amount {
   font-size: 12px;
-  color: var(--text-secondary);
+  color: var(--text-tertiary);
 }
 
 .cat-bar-track {
@@ -580,21 +685,28 @@ onMounted(async () => {
   transition: width 0.6s ease;
 }
 
-/* ===== 3. 消费亮点 ===== */
+/* ===== 3. 旅行亮点（纪念邮票风格） ===== */
 .highlights-grid {
   display: flex;
   flex-wrap: wrap;
   gap: 10px;
 }
 
-.highlight-chip {
-  display: flex;
+.highlight-stamp {
+  display: inline-flex;
   align-items: center;
   gap: 6px;
   padding: 8px 14px;
-  border: 2px solid var(--border);
-  border-radius: 24px;
+  border: 2px dashed var(--border);
+  border-radius: 12px;
   background: var(--card-bg);
+  transform: rotate(var(--stamp-rot, 0deg));
+  box-shadow: 2px 2px 0 var(--border-light);
+  transition: transform 0.2s ease;
+}
+
+.highlight-stamp:active {
+  transform: rotate(0deg) scale(0.95);
 }
 
 .highlight-emoji {
@@ -607,7 +719,7 @@ onMounted(async () => {
   color: var(--text);
 }
 
-/* ===== 4. 图片时间线 ===== */
+/* ===== 4. 旅行回忆（图片为主角） ===== */
 .photo-timeline {
   position: relative;
   padding-left: 8px;
@@ -616,7 +728,7 @@ onMounted(async () => {
 .photo-timeline-item {
   position: relative;
   padding-left: 24px;
-  padding-bottom: 16px;
+  padding-bottom: 20px;
 }
 
 .photo-timeline-item:last-child {
@@ -651,69 +763,97 @@ onMounted(async () => {
 
 .photo-timeline-date {
   font-family: var(--font-display);
-  font-size: 16px;
-  font-weight: 700;
+  font-size: 14px;
+  font-weight: 600;
   color: var(--text-secondary);
-  margin-bottom: 6px;
+  margin-bottom: 8px;
 }
 
 .photo-timeline-card {
-  display: flex;
-  gap: 10px;
   background: var(--bg);
   border-radius: var(--radius);
   padding: 8px;
+  overflow: hidden;
 }
 
+/* 大图为主角 */
 .photo-timeline-img {
-  width: 72px;
-  height: 72px;
+  width: 100%;
+  height: 160px;
   border-radius: 10px;
   object-fit: cover;
-  flex-shrink: 0;
+  display: block;
 }
 
+/* 信息区 */
 .photo-timeline-info {
+  padding: 10px 4px 4px;
   display: flex;
   flex-direction: column;
-  justify-content: center;
-  gap: 4px;
+  gap: 6px;
 }
 
-.photo-timeline-amount {
-  font-family: var(--font-body);
-  font-size: 16px;
-  font-weight: 700;
-  color: var(--text);
-}
-
+/* 备注作为主要文字 */
 .photo-timeline-note {
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--text);
+  line-height: 1.4;
+}
+
+/* 元信息行：分类 + 金额（辅助） */
+.photo-timeline-meta {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.photo-timeline-cat {
   font-size: 12px;
   color: var(--text-secondary);
 }
 
-/* ===== 空状态 ===== */
-.summary-empty {
-  text-align: center;
-  padding: 48px 0;
+.photo-timeline-amount {
+  font-size: 12px;
+  color: var(--text-tertiary);
+  font-weight: 500;
 }
 
-.summary-empty-icon {
-  font-size: 56px;
+/* ===== 5. Ending 结束语 ===== */
+.summary-ending {
+  text-align: center;
+  padding: 28px 16px 8px;
+}
+
+.ending-decor {
+  font-size: 24px;
+  color: var(--primary);
+  opacity: 0.5;
   margin-bottom: 12px;
 }
 
-.summary-empty-text {
+.ending-text {
   font-family: var(--font-display);
-  font-size: 22px;
-  font-weight: 700;
+  font-size: 16px;
+  font-weight: 600;
   color: var(--text);
-  margin-bottom: 6px;
+  line-height: 1.8;
+  margin-bottom: 8px;
 }
 
-.summary-empty-desc {
-  font-size: 13px;
+.ending-subtext {
+  font-size: 14px;
   color: var(--text-secondary);
+  line-height: 1.8;
+  margin-bottom: 12px;
+}
+
+.ending-bye {
+  font-family: var(--font-display);
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--primary);
 }
 
 /* ===== 底部 ===== */
